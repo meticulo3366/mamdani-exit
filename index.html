@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Mamdani Exit</title>
+<meta name="description" content="NYC exit math: real 2026 tax brackets and cost-of-living, fully editable.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗽</text></svg>">
+</head>
+<body>
+<style>
+  :root{
+    --ground:#F7F8F6; --surface:#FFFFFF; --ink:#16211E; --ink2:#5A6B64; --ink3:#8A9992;
+    --line:#DDE4E0; --accent:#067A57; --accent-soft:#E3F0EB; --neg:#B4452E; --neg-soft:#F6E8E4;
+    --pos:#067A57; --chip:#EDF1EF; --focus:#0B5FA5;
+    --mono:ui-monospace,'Cascadia Code','SF Mono',Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,'Segoe UI',Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --ground:#101614; --surface:#18201D; --ink:#E8EFEA; --ink2:#93A39B; --ink3:#66756E;
+      --line:#2A342F; --accent:#2EAA81; --accent-soft:#1D3A30; --neg:#E07B5F; --neg-soft:#3A241D;
+      --pos:#2EAA81; --chip:#212B26; --focus:#6FB3E8; }
+  }
+  :root[data-theme="dark"]{ --ground:#101614; --surface:#18201D; --ink:#E8EFEA; --ink2:#93A39B; --ink3:#66756E;
+    --line:#2A342F; --accent:#2EAA81; --accent-soft:#1D3A30; --neg:#E07B5F; --neg-soft:#3A241D;
+    --pos:#2EAA81; --chip:#212B26; --focus:#6FB3E8; }
+  :root[data-theme="light"]{ --ground:#F7F8F6; --surface:#FFFFFF; --ink:#16211E; --ink2:#5A6B64; --ink3:#8A9992;
+    --line:#DDE4E0; --accent:#067A57; --accent-soft:#E3F0EB; --neg:#B4452E; --neg-soft:#F6E8E4;
+    --pos:#067A57; --chip:#EDF1EF; --focus:#0B5FA5; }
+
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:14.5px;line-height:1.5;margin:0;padding:0}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 64px}
+  a{color:var(--accent)}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:3px}
+
+  header.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 16px;margin-bottom:6px}
+  h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin:0;text-wrap:balance}
+  .vintage{font-family:var(--mono);font-size:11.5px;color:var(--ink2);background:var(--chip);border:1px solid var(--line);padding:3px 9px;border-radius:99px;letter-spacing:.03em}
+  .sub{color:var(--ink2);margin:0 0 24px;max-width:68ch}
+
+  .layout{display:grid;grid-template-columns:318px 1fr;gap:22px;align-items:start}
+  @media (max-width:900px){.layout{grid-template-columns:1fr}}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+  .rail{position:sticky;top:16px;display:flex;flex-direction:column;gap:14px}
+  @media (max-width:900px){.rail{position:static}}
+
+  .lbl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink2);margin-bottom:4px}
+  .hint{font-size:11.5px;color:var(--ink3);margin-top:3px;line-height:1.4}
+  input[type=number],select{width:100%;background:var(--ground);color:var(--ink);border:1px solid var(--line);border-radius:7px;
+    padding:7px 10px;font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
+  select{font-family:var(--sans)}
+  input[type=number]:focus,select:focus{outline:2px solid var(--focus);outline-offset:0;border-color:transparent}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .toggle{display:flex;gap:9px;align-items:flex-start;cursor:pointer;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--ground)}
+  .toggle input{margin-top:3px;accent-color:var(--accent)}
+  .toggle b{font-size:13px}
+  .toggle .hint{margin-top:1px}
+
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+  @media (max-width:720px){.tiles{grid-template-columns:1fr}}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .tile .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink2)}
+  .tile .v{font-family:var(--mono);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px;letter-spacing:-.01em}
+  .tile .d{font-size:12px;color:var(--ink2);margin-top:2px}
+  .tile .v .pos{color:var(--pos)} .tile .v .neg{color:var(--neg)}
+
+  h2{font-size:15px;font-weight:800;letter-spacing:-.01em;margin:0 0 4px}
+  .sectionnote{font-size:12px;color:var(--ink2);margin:0 0 14px}
+
+  /* chart */
+  .chart{display:flex;flex-direction:column;gap:7px}
+  .crow{display:grid;grid-template-columns:118px 1fr 170px;gap:10px;align-items:center;padding:3px 6px;border-radius:7px;cursor:pointer;border:1px solid transparent}
+  .crow:hover{background:var(--chip)}
+  .crow.sel{border-color:var(--accent);background:var(--accent-soft)}
+  .cname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cname .st{color:var(--ink3);font-weight:500;font-size:11.5px}
+  .track{height:16px;background:var(--chip);border-radius:4px;overflow:hidden;position:relative}
+  .bar{height:100%;background:var(--accent);border-radius:0 4px 4px 0;min-width:2px;transition:width .35s ease}
+  .bar.base{background:repeating-linear-gradient(45deg,var(--accent),var(--accent) 5px,color-mix(in srgb,var(--accent) 55%,var(--surface)) 5px,color-mix(in srgb,var(--accent) 55%,var(--surface)) 10px)}
+  .bar.negbar{background:var(--neg)}
+  @media (prefers-reduced-motion:reduce){.bar{transition:none}}
+  .cval{display:flex;gap:8px;align-items:center;justify-content:flex-end;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .delta{font-size:11.5px;padding:1px 7px;border-radius:99px;font-weight:600}
+  .delta.up{background:var(--accent-soft);color:var(--pos)}
+  .delta.dn{background:var(--neg-soft);color:var(--neg)}
+  .delta.zero{background:var(--chip);color:var(--ink2)}
+  @media (max-width:640px){.crow{grid-template-columns:90px 1fr 120px}.delta{display:none}}
+
+  #tip{position:fixed;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;
+    padding:10px 12px;font-size:12px;box-shadow:0 6px 24px rgba(0,0,0,.18);z-index:50;display:none;min-width:210px}
+  #tip table{border-collapse:collapse;width:100%}
+  #tip td{padding:1px 0;font-variant-numeric:tabular-nums}
+  #tip td:last-child{text-align:right;font-family:var(--mono)}
+  #tip .tt{font-weight:700;margin-bottom:4px}
+
+  /* detail ledger */
+  .ledger{margin-top:20px}
+  .ledger table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  .ledger th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2);text-align:right;padding:6px 10px;border-bottom:1px solid var(--line);font-weight:700}
+  .ledger th:first-child{text-align:left}
+  .ledger td{padding:5px 10px;text-align:right;font-family:var(--mono);font-size:13px;border-bottom:1px solid color-mix(in srgb,var(--line) 45%,transparent)}
+  .ledger td:first-child{text-align:left;font-family:var(--sans);color:var(--ink2)}
+  .ledger tr.grp td{padding-top:12px;font-weight:700;color:var(--ink);font-family:var(--sans);font-size:12px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line)}
+  .ledger tr.tot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:none;padding-top:8px}
+  .ledger .pos{color:var(--pos)} .ledger .neg{color:var(--neg)}
+  .tblwrap{overflow-x:auto}
+
+  /* full table */
+  .fulltable table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:760px}
+  .fulltable th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);text-align:right;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:700}
+  .fulltable th:first-child{text-align:left}
+  .fulltable td{padding:6px 9px;text-align:right;font-family:var(--mono);font-size:12.5px;border-bottom:1px solid color-mix(in srgb,var(--line) 45%,transparent);white-space:nowrap}
+  .fulltable td:first-child{text-align:left;font-family:var(--sans);font-weight:600}
+
+  /* city manager */
+  .citylist{display:flex;flex-direction:column;gap:6px}
+  .cityrow{display:grid;grid-template-columns:1fr 82px 56px 46px 30px;gap:7px;align-items:center}
+  .cityrow .nm{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cityrow .nm .st{color:var(--ink3);font-weight:500;font-size:11.5px}
+  .cityrow input{padding:5px 8px;font-size:12.5px}
+  .xbtn{background:none;border:1px solid var(--line);color:var(--ink2);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:13px;line-height:1}
+  .xbtn:hover{color:var(--neg);border-color:var(--neg)}
+  .colhead{display:grid;grid-template-columns:1fr 82px 56px 46px 30px;gap:7px;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);font-weight:700;padding-bottom:2px}
+  .addrow{display:flex;gap:8px;margin-top:12px}
+  .addrow select{flex:1}
+  button.btn{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--sans)}
+  button.btn.ghost{background:var(--chip);color:var(--ink);border:1px solid var(--line)}
+  button.btn:hover{filter:brightness(1.07)}
+
+  details.block{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-top:18px}
+  details.block>summary{cursor:pointer;padding:14px 18px;font-weight:700;font-size:14px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+  details.block>summary::after{content:"+";font-family:var(--mono);color:var(--ink2);font-size:16px}
+  details.block[open]>summary::after{content:"–"}
+  details.block>.inner{padding:0 18px 18px}
+  textarea#datajson{width:100%;min-height:320px;background:var(--ground);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+    padding:12px;font-family:var(--mono);font-size:12px;line-height:1.45;resize:vertical;tab-size:2}
+  .jsonmsg{font-family:var(--mono);font-size:12px;margin-top:8px;min-height:18px}
+  .jsonmsg.ok{color:var(--pos)} .jsonmsg.err{color:var(--neg)}
+  .caveats{font-size:12.5px;color:var(--ink2);line-height:1.6}
+  .caveats li{margin-bottom:5px}
+  .caveats b{color:var(--ink)}
+  .srcs{font-size:12px;color:var(--ink3);margin-top:10px;line-height:1.7}
+  .custom{display:none;grid-template-columns:1fr 90px;gap:8px;margin-top:10px}
+  .custom.show{display:grid}
+  .custom input,.custom select{padding:6px 9px;font-size:12.5px}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <h1>The Mamdani Exit</h1>
+  <span class="vintage">TAX YEAR 2026 · RATES VERIFIED JUL 2026</span>
+</header>
+<p class="sub">Federal tax and FICA are identical in every state, so only <b>state&nbsp;+&nbsp;local income tax</b> and <b>living costs</b> change when you move.
+This calculator runs real 2026 progressive brackets — not flat approximations — and every rate is editable data, not code.</p>
+
+<div class="layout">
+  <!-- ============ INPUT RAIL ============ -->
+  <div class="rail">
+    <div class="panel" style="display:flex;flex-direction:column;gap:13px">
+      <div>
+        <label class="lbl" for="in-gross">Gross annual income ($)</label>
+        <input type="number" id="in-gross" min="0" step="5000">
+      </div>
+      <div class="row2">
+        <div>
+          <label class="lbl" for="in-bonus">Bonus share (%)</label>
+          <input type="number" id="in-bonus" min="0" max="100" step="5">
+        </div>
+        <div>
+          <label class="lbl" for="in-status">Filing status</label>
+          <select id="in-status">
+            <option value="single">Single</option>
+            <option value="mfj">Married joint</option>
+          </select>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:-6px">Bonuses are taxed as ordinary income at filing — the split only matters for withholding and the first-year NY-sourcing toggle below.</div>
+      <div>
+        <label class="lbl" for="in-k401">Pre-tax 401(k) ($/yr)</label>
+        <input type="number" id="in-k401" min="0" step="500">
+        <div class="hint">2026 employee limit: $24,500. Reduces income tax, not FICA.</div>
+      </div>
+      <div>
+        <label class="lbl" for="in-spend">Non-housing spend ($/mo)</label>
+        <input type="number" id="in-spend" min="0" step="250">
+        <div class="hint">Food, fun, everything but housing &amp; transport — at NYC prices. Scaled by each city's cost index.</div>
+      </div>
+      <div>
+        <label class="lbl" for="in-carcost">Cost per car ($/mo)</label>
+        <input type="number" id="in-carcost" min="0" step="50">
+        <div class="hint">All-in: payment/depreciation, insurance, gas, parking, maintenance. AAA puts a new car near $1,000/mo; a paid-off used car runs ~$400–600. Each city's car count is editable below — only NYC defaults to zero.</div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="lbl" for="in-proptax">Property tax ($/yr)</label>
+          <input type="number" id="in-proptax" min="0" step="500">
+        </div>
+        <div>
+          <label class="lbl" for="in-otheritem">Other itemized ($)</label>
+          <input type="number" id="in-otheritem" min="0" step="500">
+        </div>
+      </div>
+      <div class="hint" style="margin-top:-6px">Used for federal itemizing. SALT cap $40,400 (phases to $10,100 above $505k AGI). The calculator auto-picks standard vs itemized per city.</div>
+      <label class="toggle">
+        <input type="checkbox" id="in-nysrc">
+        <span><b>First year: bonus still NY-sourced</b>
+        <div class="hint">NY taxes bonuses earned from NY workdays even after you leave. Models NY nonresident tax on the bonus, net of your new state's credit. NYC city tax drops off either way.</div></span>
+      </label>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-bottom:10px">Cities</h2>
+      <div class="colhead"><span></span><span>Rent /mo</span><span>Idx</span><span>Cars</span><span></span></div>
+      <div class="citylist" id="citylist"></div>
+      <div class="addrow">
+        <select id="addsel"></select>
+        <button class="btn" id="addbtn">Add</button>
+      </div>
+      <div class="custom" id="customform">
+        <input type="text" id="cust-name" placeholder="City name" style="grid-column:1/3;background:var(--ground);color:var(--ink);border:1px solid var(--line);border-radius:7px;font-family:var(--sans)">
+        <select id="cust-state"></select>
+        <input type="number" id="cust-rent" placeholder="Rent /mo" min="0" step="100">
+        <input type="number" id="cust-col" placeholder="Cost idx %" min="1" max="200" step="1">
+        <input type="number" id="cust-cars" placeholder="Cars" min="0" max="4" step="1">
+        <input type="number" id="cust-citytax" placeholder="City tax %" min="0" max="10" step="0.1">
+        <button class="btn" id="custadd" style="grid-column:1/3">Add custom city</button>
+      </div>
+      <div class="hint" style="margin-top:10px">Rents are editable placeholders — plug in real quotes for the neighborhoods you'd actually live in. Cost index 100 = NYC prices. <b>Cars</b> = vehicles you'd need there (NYC, and transit-strong cities like Chicago/Boston/SF, default lower); each costs the per-car figure set above. Per-city transit-pass costs live in the tax-data JSON.</div>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <div>
+    <div class="tiles" id="tiles"></div>
+
+    <div class="panel">
+      <h2>Discretionary income after taxes &amp; living costs</h2>
+      <p class="sectionnote">What's left to save or spend each year. Hatched bar = NYC baseline. Click a city for the full ledger.</p>
+      <div class="chart" id="chart"></div>
+    </div>
+
+    <div class="panel ledger" id="ledgerpanel">
+      <h2 id="ledgertitle">Ledger</h2>
+      <p class="sectionnote">Line-by-line vs staying in NYC.</p>
+      <div class="tblwrap"><table id="ledger"></table></div>
+    </div>
+
+    <details class="block" id="fulldetails">
+      <summary>All cities — full table</summary>
+      <div class="inner fulltable tblwrap"><table id="fulltable"></table></div>
+    </details>
+
+    <details class="block">
+      <summary>Tax data — every rate is pluggable</summary>
+      <div class="inner">
+        <p class="sectionnote" style="margin-top:0">The entire tax model lives in this JSON: federal &amp; state brackets, deductions, FICA, SALT rules, city taxes.
+        Edit anything — next year's brackets, a missing state, your own numbers — and hit Apply. Changes persist in your browser.</p>
+        <textarea id="datajson" spellcheck="false" aria-label="Tax data JSON"></textarea>
+        <div class="jsonmsg" id="jsonmsg"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" id="applyjson">Apply</button>
+          <button class="btn ghost" id="resetjson">Reset to verified 2026 defaults</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="block">
+      <summary>Method, assumptions &amp; what's not modeled</summary>
+      <div class="inner caveats">
+        <ul>
+          <li><b>Modeled:</b> 2026 federal brackets &amp; standard deduction (OBBBA-adjusted, Rev. Proc. 2025-32) · FICA with the $184,500 SS wage base + 0.9% additional Medicare · progressive state brackets with state-specific deductions/exemptions · <b>NY tax-benefit recapture</b> (above $107,650 NYAGI your top rate phases in on <i>all</i> income — most calculators skip this) · NYC resident brackets · CA 1% mental-health surtax &amp; 1.2% uncapped SDI payroll tax · MA 4% millionaire surtax · Philadelphia wage tax · federal SALT itemizing with the $40,400 cap and high-income phase-down, auto-compared to the standard deduction per city.</li>
+          <li><b>Bonus:</b> annually, a bonus is ordinary income — the 40/60 split changes withholding timing, not the tax bill. The one real effect is first-year sourcing: NY taxes a bonus earned from NY workdays even if paid after you move. The toggle models this net of your new state's resident credit.</li>
+          <li><b>Not modeled:</b> AMT · CT bracket-benefit recapture (adds up to ~$3.2k for CT high earners) · IL/CT exemption phase-outs · NJ/NY small payroll deductions (PFL/UI, &lt;0.6% capped) · PA taxing 401(k) deferrals · local sales &amp; property tax differences beyond your input · moving costs · capital gains and investment income (WA taxes those, not wages).</li>
+          <li><b>Cars:</b> each city has a car count (only NYC and a few transit-strong cities default below one per household) × your all-in per-car cost, plus a monthly transit-pass figure (NYC $132 unlimited MetroCard; editable per city in the JSON). Car insurance varies a lot by state — FL, NY, and LA metro run high, so adjust the per-car cost if insurance quotes differ materially.</li>
+          <li><b>Rents and cost indexes are placeholders</b> — the tax math is exact to the data; the living-cost side is only as good as what you plug in.</li>
+          <li>Not tax advice. The NY bonus-sourcing rules and move-timing are genuinely worth a CPA — mistiming a large bonus around a move can cost more than any modeling error here.</li>
+        </ul>
+        <div class="srcs" id="sources">
+          Sources: IRS Rev. Proc. 2025-32 (2026 inflation adjustments) · Tax Foundation 2026 federal &amp; state brackets · SSA 2026 wage base · NY DTF / NYC Finance published rates. Verified 2026-07-16.
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+"use strict";
+/* ================= DEFAULT TAX DATA (verified July 2026) ================= */
+const DEFAULT_DATA = {
+  meta:{taxYear:2026, verified:"2026-07-16"},
+  federal:{
+    stdDed:{single:16100, mfj:32200},
+    brackets:{
+      single:[[12400,0.10],[50400,0.12],[105700,0.22],[201775,0.24],[256225,0.32],[640600,0.35],[null,0.37]],
+      mfj:[[24800,0.10],[100800,0.12],[211400,0.22],[403550,0.24],[512450,0.32],[768700,0.35],[null,0.37]]
+    },
+    salt:{cap:40400, floor:10100, phaseoutStart:505000, phaseoutRate:0.30}
+  },
+  fica:{ssRate:0.062, ssWageBase:184500, medicareRate:0.0145, addlMedicareRate:0.009, addlThreshold:{single:200000, mfj:250000}},
+  states:{
+    NY:{name:"New York", type:"brackets", stdDed:{single:8000, mfj:16050}, recapture:"ny",
+      brackets:{
+        single:[[8500,0.039],[11700,0.044],[13900,0.0515],[80650,0.054],[215400,0.059],[1077550,0.0685],[5000000,0.0965],[25000000,0.103],[null,0.109]],
+        mfj:[[17150,0.039],[23600,0.044],[27900,0.0515],[161550,0.054],[323200,0.059],[2155350,0.0685],[5000000,0.0965],[25000000,0.103],[null,0.109]]
+      }},
+    CA:{name:"California", type:"brackets", stdDed:{single:5706, mfj:11412},
+      surtax:{threshold:1000000, rate:0.01, label:"CA mental-health surtax"},
+      payroll:{rate:0.012, cap:null, label:"CA SDI (uncapped)"},
+      brackets:{
+        single:[[10756,0.01],[25499,0.02],[40245,0.04],[55866,0.06],[70612,0.08],[360659,0.093],[432787,0.103],[721314,0.113],[1000000,0.123],[null,0.133]],
+        mfj:[[21512,0.01],[50998,0.02],[80490,0.04],[111732,0.06],[141224,0.08],[721318,0.093],[865574,0.103],[1442628,0.113],[2000000,0.123],[null,0.133]]
+      }},
+    NJ:{name:"New Jersey", type:"brackets", stdDed:{single:1000, mfj:2000},
+      brackets:{
+        single:[[20000,0.014],[35000,0.0175],[40000,0.035],[75000,0.05525],[500000,0.0637],[1000000,0.0897],[null,0.1075]],
+        mfj:[[20000,0.014],[50000,0.0175],[70000,0.0245],[80000,0.035],[150000,0.05525],[500000,0.0637],[1000000,0.0897],[null,0.1075]]
+      }},
+    CT:{name:"Connecticut", type:"brackets", stdDed:{single:0, mfj:0},
+      brackets:{
+        single:[[10000,0.02],[50000,0.045],[100000,0.055],[200000,0.06],[250000,0.065],[500000,0.069],[null,0.0699]],
+        mfj:[[20000,0.02],[100000,0.045],[200000,0.055],[400000,0.06],[500000,0.065],[1000000,0.069],[null,0.0699]]
+      }},
+    MA:{name:"Massachusetts", type:"flat", rate:0.05, stdDed:{single:4400, mfj:8800},
+      surtax:{threshold:1083150, rate:0.04, label:"MA millionaire surtax"}},
+    IL:{name:"Illinois", type:"flat", rate:0.0495, stdDed:{single:2850, mfj:5700}},
+    PA:{name:"Pennsylvania", type:"flat", rate:0.0307, stdDed:{single:0, mfj:0}},
+    CO:{name:"Colorado", type:"flat", rate:0.044, stdDed:{single:16100, mfj:32200}},
+    GA:{name:"Georgia", type:"flat", rate:0.0519, stdDed:{single:12000, mfj:24000}},
+    NC:{name:"North Carolina", type:"flat", rate:0.0399, stdDed:{single:12750, mfj:25500}},
+    AZ:{name:"Arizona", type:"flat", rate:0.025, stdDed:{single:16100, mfj:32200}},
+    FL:{name:"Florida", type:"none"}, TX:{name:"Texas", type:"none"}, TN:{name:"Tennessee", type:"none"},
+    NV:{name:"Nevada", type:"none"}, WA:{name:"Washington", type:"none"}
+  },
+  cities:{
+    nyc:{name:"New York", state:"NY", rent:4200, colIndex:1.00, cars:0, transit:132, baseline:true,
+      cityTax:{type:"brackets", base:"stateTaxable",
+        brackets:{single:[[12000,0.03078],[25000,0.03762],[50000,0.03819],[null,0.03876]],
+                  mfj:[[21600,0.03078],[45000,0.03762],[90000,0.03819],[null,0.03876]]}}},
+    miami:{name:"Miami", state:"FL", rent:2800, colIndex:0.88, cars:1, transit:0},
+    austin:{name:"Austin", state:"TX", rent:1700, colIndex:0.82, cars:1, transit:0},
+    dallas:{name:"Dallas", state:"TX", rent:1600, colIndex:0.80, cars:1, transit:0},
+    nashville:{name:"Nashville", state:"TN", rent:1650, colIndex:0.80, cars:1, transit:0},
+    vegas:{name:"Las Vegas", state:"NV", rent:1500, colIndex:0.78, cars:1, transit:0},
+    seattle:{name:"Seattle", state:"WA", rent:2300, colIndex:0.92, cars:1, transit:100},
+    sf:{name:"San Francisco", state:"CA", rent:3300, colIndex:0.98, cars:0, transit:85},
+    la:{name:"Los Angeles", state:"CA", rent:2400, colIndex:0.90, cars:1, transit:0},
+    boston:{name:"Boston", state:"MA", rent:3100, colIndex:0.95, cars:0, transit:90},
+    jerseycity:{name:"Jersey City", state:"NJ", rent:3300, colIndex:0.92, cars:0, transit:130},
+    stamford:{name:"Stamford", state:"CT", rent:2800, colIndex:0.90, cars:1, transit:0},
+    chicago:{name:"Chicago", state:"IL", rent:2100, colIndex:0.85, cars:0, transit:75},
+    philly:{name:"Philadelphia", state:"PA", rent:1800, colIndex:0.83, cars:0, transit:96,
+      cityTax:{type:"flat", rate:0.0374, base:"gross", label:"Philadelphia wage tax"}},
+    denver:{name:"Denver", state:"CO", rent:1800, colIndex:0.85, cars:1, transit:0},
+    atlanta:{name:"Atlanta", state:"GA", rent:1800, colIndex:0.82, cars:1, transit:0},
+    charlotte:{name:"Charlotte", state:"NC", rent:1600, colIndex:0.78, cars:1, transit:0},
+    phoenix:{name:"Phoenix", state:"AZ", rent:1500, colIndex:0.80, cars:1, transit:0}
+  }
+};
+const DEFAULT_ACTIVE = ["nyc","miami","austin","nashville","seattle","la","boston","chicago","denver","atlanta"];
+const DEFAULT_INPUTS = {gross:200000, bonusPct:40, status:"single", k401:0, spend:3000, carCost:750, propTax:0, otherItem:0, nySrc:false};
+
+/* ================= STATE ================= */
+const LS = {data:"nycexit.data.v2", active:"nycexit.active.v2", inputs:"nycexit.inputs.v1"};
+// helpers for cities saved before cars/transit existed
+const cityCars = c => (c.cars ?? (c.baseline ? 0 : 1));
+const cityTransit = c => (c.transit ?? (c.baseline ? 132 : 0));
+function loadLS(key, fallback){ try{ const v=localStorage.getItem(key); return v? JSON.parse(v) : structuredClone(fallback); }catch(e){ return structuredClone(fallback); } }
+let DATA   = loadLS(LS.data, DEFAULT_DATA);
+let ACTIVE = loadLS(LS.active, DEFAULT_ACTIVE).filter(id=>true);
+let INPUTS = Object.assign(structuredClone(DEFAULT_INPUTS), loadLS(LS.inputs, {}));
+let SELECTED = null;
+function save(){ try{ localStorage.setItem(LS.data, JSON.stringify(DATA)); localStorage.setItem(LS.active, JSON.stringify(ACTIVE)); localStorage.setItem(LS.inputs, JSON.stringify(INPUTS)); }catch(e){} }
+
+/* ================= TAX ENGINE ================= */
+function progTax(brackets, t){
+  let tax=0, lo=0;
+  for(const [cap, r] of brackets){
+    const hi = (cap==null) ? Infinity : cap;
+    if(t > lo) tax += (Math.min(t, hi) - lo) * r;
+    lo = hi;
+    if(t <= hi) break;
+  }
+  return Math.max(0, tax);
+}
+function marginalInfo(brackets, t){ // rate + lower bound of bracket containing t
+  let lo=0;
+  for(const [cap, r] of brackets){
+    const hi = (cap==null) ? Infinity : cap;
+    if(t <= hi) return {rate:r, lo};
+    lo = hi;
+  }
+  const last = brackets[brackets.length-1];
+  return {rate:last[1], lo};
+}
+function stateTax(st, wages, status){
+  if(!st || st.type==="none") return {tax:0, taxable:0};
+  const ded = st.stdDed ? (st.stdDed[status]||0) : 0;
+  const taxable = Math.max(0, wages - ded);
+  let tax = 0;
+  if(st.type==="flat"){ tax = st.rate * taxable; }
+  else{
+    const br = st.brackets[status];
+    tax = progTax(br, taxable);
+    if(st.recapture==="ny"){ // NY tax-benefit recapture: top rate phases in on ALL taxable income
+      const m = marginalInfo(br, taxable);
+      const flat = m.rate * taxable;
+      const phase = Math.min(1, Math.max(0, (wages - Math.max(107650, m.lo)) / 50000));
+      tax = tax + Math.max(0, flat - tax) * phase;
+    }
+  }
+  if(st.surtax) tax += st.surtax.rate * Math.max(0, taxable - st.surtax.threshold);
+  return {tax, taxable};
+}
+function calcCity(cityId){
+  const {gross, bonusPct, status, k401, spend, propTax, otherItem, nySrc} = INPUTS;
+  const city = DATA.cities[cityId];
+  const st = DATA.states[city.state] || {type:"none"};
+  const wages = Math.max(0, gross - k401);
+  // FICA — identical everywhere (401k does not reduce FICA)
+  const ss = DATA.fica.ssRate * Math.min(gross, DATA.fica.ssWageBase);
+  const medicare = DATA.fica.medicareRate * gross
+    + DATA.fica.addlMedicareRate * Math.max(0, gross - DATA.fica.addlThreshold[status]);
+  // State
+  const sres = stateTax(st, wages, status);
+  const payroll = st.payroll ? st.payroll.rate * (st.payroll.cap ? Math.min(wages, st.payroll.cap) : wages) : 0;
+  // City tax
+  let cityTaxAmt = 0;
+  if(city.cityTax){
+    const ct = city.cityTax;
+    if(ct.type==="flat") cityTaxAmt = ct.rate * (ct.base==="gross" ? gross : sres.taxable);
+    else cityTaxAmt = progTax(ct.brackets[status], sres.taxable);
+  }
+  // First-year NY-sourced bonus (non-NY residents): NY nonresident tax on bonus share, net of resident-state credit
+  let nyExtra = 0;
+  if(nySrc && city.state !== "NY"){
+    const share = Math.min(1, Math.max(0, bonusPct/100));
+    const nyOnBonus = stateTax(DATA.states.NY, wages, status).tax * share;
+    const credit = Math.min(nyOnBonus, sres.tax * share);
+    nyExtra = Math.max(0, nyOnBonus - credit);
+  }
+  // Federal — auto standard vs itemized with SALT cap + phase-down
+  const agi = wages;
+  const sc = DATA.federal.salt;
+  const cap = Math.min(sc.cap, Math.max(sc.floor, sc.cap - sc.phaseoutRate * Math.max(0, agi - sc.phaseoutStart)));
+  const saltPaid = sres.tax + cityTaxAmt + nyExtra + (propTax||0);
+  const itemized = Math.min(saltPaid, cap) + (otherItem||0);
+  const std = DATA.federal.stdDed[status];
+  const usedItemized = itemized > std;
+  const fedTaxable = Math.max(0, agi - Math.max(std, itemized));
+  const fed = progTax(DATA.federal.brackets[status], fedTaxable);
+
+  const totalTax = fed + ss + medicare + sres.tax + payroll + cityTaxAmt + nyExtra;
+  const takeHome = gross - k401 - totalTax;
+  const housing = (city.rent||0) * 12;
+  const otherCOL = (spend||0) * 12 * (city.colIndex||1);
+  const cars = cityCars(city), transitMo = cityTransit(city);
+  const transport = cars * (INPUTS.carCost||0) * 12 + transitMo * 12;
+  const disc = takeHome - housing - otherCOL - transport;
+  return {id:cityId, name:city.name, stateCode:city.state, stateName:(st.name||city.state),
+    fed, ss, medicare, state:sres.tax, payroll, cityTax:cityTaxAmt, nyExtra,
+    payrollLabel: st.payroll ? st.payroll.label : null,
+    totalTax, takeHome, housing, otherCOL, transport, cars, transitMo, disc, usedItemized,
+    fedDed: Math.max(std, itemized), effRate: gross>0 ? totalTax/gross : 0,
+    stateLocal: sres.tax + payroll + cityTaxAmt + nyExtra, baseline: !!city.baseline};
+}
+
+/* ================= FORMATTING ================= */
+const fmtC = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
+const $ = v => fmtC.format(Math.round(v));
+const pct = v => (v*100).toFixed(1)+"%";
+const sgn = v => (v>=0?"+":"−") + fmtC.format(Math.abs(Math.round(v)));
+
+/* ================= RENDER ================= */
+function results(){
+  const out = ACTIVE.filter(id=>DATA.cities[id]).map(calcCity);
+  out.sort((a,b)=>b.disc-a.disc);
+  return out;
+}
+function render(){
+  const res = results();
+  const base = res.find(r=>r.id==="nyc") || res.find(r=>r.baseline);
+  if(SELECTED===null || !res.some(r=>r.id===SELECTED)){
+    const top = res.find(r=>base ? r.id!==base.id : true);
+    SELECTED = top ? top.id : (res[0] ? res[0].id : null);
+  }
+  renderTiles(res, base); renderChart(res, base); renderLedger(res, base); renderFullTable(res, base); renderCityList(); renderAddSel();
+  const ta = document.getElementById("datajson");
+  if(document.activeElement !== ta) ta.value = JSON.stringify(DATA, null, 2);
+  save();
+}
+function renderTiles(res, base){
+  const el = document.getElementById("tiles");
+  if(!res.length){ el.innerHTML=""; return; }
+  const best = res.find(r=>!base || r.id!==base.id) || res[0];
+  const delta = base ? best.disc - base.disc : 0;
+  const tiles = [];
+  tiles.push(`<div class="tile"><div class="k">Best move</div><div class="v">${best.name}</div>
+    <div class="d">${$(best.disc)} discretionary / yr</div></div>`);
+  if(base) tiles.push(`<div class="tile"><div class="k">vs staying in NYC</div>
+    <div class="v"><span class="${delta>=0?"pos":"neg"}">${sgn(delta)}</span></div>
+    <div class="d">per year, after taxes &amp; living costs</div></div>`);
+  if(base) tiles.push(`<div class="tile"><div class="k">NYC total tax rate</div><div class="v">${pct(base.effRate)}</div>
+    <div class="d">${$(base.totalTax)} total tax on ${$(INPUTS.gross)}</div></div>`);
+  el.innerHTML = tiles.join("");
+}
+function renderChart(res, base){
+  const el = document.getElementById("chart");
+  const max = Math.max(1, ...res.map(r=>r.disc));
+  el.innerHTML = res.map(r=>{
+    const w = Math.max(0, r.disc)/max*100;
+    const d = base && r.id!==base.id ? r.disc-base.disc : null;
+    const deltaChip = r.id===(base&&base.id)
+      ? `<span class="delta zero">baseline</span>`
+      : (d===null ? "" : `<span class="delta ${d>=0?"up":"dn"}">${d>=0?"▲":"▼"} ${sgn(d)}</span>`);
+    const barCls = r.disc<0 ? "bar negbar" : (r.baseline ? "bar base" : "bar");
+    return `<div class="crow${r.id===SELECTED?" sel":""}" data-id="${r.id}" tabindex="0" role="button"
+      aria-label="${r.name}: ${$(r.disc)} discretionary per year">
+      <div class="cname">${r.name} <span class="st">${r.stateCode}</span></div>
+      <div class="track"><div class="${barCls}" style="width:${w}%"></div></div>
+      <div class="cval"><span>${$(r.disc)}</span>${deltaChip}</div></div>`;
+  }).join("");
+  el.querySelectorAll(".crow").forEach(row=>{
+    const id = row.dataset.id;
+    const pick = ()=>{ SELECTED=id; render(); };
+    row.addEventListener("click", pick);
+    row.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault(); pick();} });
+    row.addEventListener("mousemove", e=>showTip(e, res.find(r=>r.id===id)));
+    row.addEventListener("mouseleave", hideTip);
+  });
+}
+function showTip(e, r){
+  if(!r) return;
+  const tip = document.getElementById("tip");
+  tip.innerHTML = `<div class="tt">${r.name}, ${r.stateName}</div><table>
+    <tr><td>Federal + FICA</td><td>${$(r.fed+r.ss+r.medicare)}</td></tr>
+    <tr><td>State + local tax</td><td>${$(r.stateLocal)}</td></tr>
+    <tr><td>Take-home</td><td>${$(r.takeHome)}</td></tr>
+    <tr><td>Housing + living</td><td>${$(r.housing+r.otherCOL)}</td></tr>
+    <tr><td>Transport (${r.cars} car${r.cars===1?"":"s"}${r.transitMo>0?" + transit":""})</td><td>${$(r.transport)}</td></tr>
+    <tr><td><b>Discretionary</b></td><td><b>${$(r.disc)}</b></td></tr></table>`;
+  tip.style.display="block";
+  const pad=14, w=tip.offsetWidth, h=tip.offsetHeight;
+  let x=e.clientX+pad, y=e.clientY+pad;
+  if(x+w>window.innerWidth-8) x=e.clientX-w-pad;
+  if(y+h>window.innerHeight-8) y=e.clientY-h-pad;
+  tip.style.left=x+"px"; tip.style.top=y+"px";
+}
+function hideTip(){ document.getElementById("tip").style.display="none"; }
+
+function renderLedger(res, base){
+  const r = res.find(x=>x.id===SELECTED);
+  const panel = document.getElementById("ledgerpanel");
+  if(!r){ panel.style.display="none"; return; }
+  panel.style.display="";
+  const hasBase = base && base.id!==r.id;
+  document.getElementById("ledgertitle").textContent = hasBase ? `${r.name} vs New York — annual ledger` : `${r.name} — annual ledger`;
+  const col = (v, b)=>`<td>${$(v)}</td>${hasBase?`<td>${$(b)}</td><td class="${b-v>=0?"pos":"neg"}">${sgn(b-v)}</td>`:""}`;
+  const rows = [];
+  rows.push(`<tr><th>Line</th><th>${r.name}</th>${hasBase?`<th>New York</th><th>You keep</th>`:""}</tr>`);
+  rows.push(`<tr class="grp"><td colspan="4">Taxes</td></tr>`);
+  rows.push(`<tr><td>Federal income tax ${r.usedItemized?"(itemized)":"(std ded)"}</td>${col(r.fed, hasBase?base.fed:0)}</tr>`);
+  rows.push(`<tr><td>Social Security + Medicare</td>${col(r.ss+r.medicare, hasBase?base.ss+base.medicare:0)}</tr>`);
+  rows.push(`<tr><td>State income tax (${r.stateName})</td>${col(r.state, hasBase?base.state:0)}</tr>`);
+  if(r.payroll>0 || (hasBase&&base.payroll>0)) rows.push(`<tr><td>${r.payrollLabel||"State payroll tax"}</td>${col(r.payroll, hasBase?base.payroll:0)}</tr>`);
+  rows.push(`<tr><td>City income tax</td>${col(r.cityTax, hasBase?base.cityTax:0)}</tr>`);
+  if(r.nyExtra>0) rows.push(`<tr><td>NY nonresident tax on bonus (yr 1)</td>${col(r.nyExtra, 0)}</tr>`);
+  rows.push(`<tr><td><b>Total tax (${pct(r.effRate)} effective)</b></td>${col(r.totalTax, hasBase?base.totalTax:0)}</tr>`);
+  rows.push(`<tr class="grp"><td colspan="4">Living costs</td></tr>`);
+  rows.push(`<tr><td>Housing (rent × 12)</td>${col(r.housing, hasBase?base.housing:0)}</tr>`);
+  const carLbl = x => `${x.cars} car${x.cars===1?"":"s"}${x.transitMo>0?" + transit":""}`;
+  rows.push(`<tr><td>Transportation (${carLbl(r)}${hasBase?` vs ${carLbl(base)}`:""})</td>${col(r.transport, hasBase?base.transport:0)}</tr>`);
+  rows.push(`<tr><td>Other living costs</td>${col(r.otherCOL, hasBase?base.otherCOL:0)}</tr>`);
+  const keep = hasBase ? r.disc-base.disc : 0;
+  rows.push(`<tr class="tot"><td>Discretionary income</td><td>${$(r.disc)}</td>${hasBase?`<td>${$(base.disc)}</td><td class="${keep>=0?"pos":"neg"}">${sgn(keep)}</td>`:""}</tr>`);
+  document.getElementById("ledger").innerHTML = rows.join("");
+}
+function renderFullTable(res, base){
+  const rows = [`<tr><th>City</th><th>Take-home</th><th>Eff. tax</th><th>State+local</th><th>Housing</th><th>Transport</th><th>Other COL</th><th>Discretionary</th><th>Δ vs NYC</th></tr>`];
+  for(const r of res){
+    const d = base && r.id!==base.id ? r.disc-base.disc : null;
+    rows.push(`<tr><td>${r.name}, ${r.stateCode}</td><td>${$(r.takeHome)}</td><td>${pct(r.effRate)}</td>
+      <td>${$(r.stateLocal)}</td><td>${$(r.housing)}</td><td>${$(r.transport)}</td><td>${$(r.otherCOL)}</td><td>${$(r.disc)}</td>
+      <td class="${d===null?"":(d>=0?"pos":"neg")}" style="${d===null?"":`color:var(--${d>=0?"pos":"neg"})`}">${d===null?"—":sgn(d)}</td></tr>`);
+  }
+  document.getElementById("fulltable").innerHTML = rows.join("");
+}
+function renderCityList(){
+  const el = document.getElementById("citylist");
+  el.innerHTML = ACTIVE.filter(id=>DATA.cities[id]).map(id=>{
+    const c = DATA.cities[id];
+    return `<div class="cityrow" data-id="${id}">
+      <span class="nm">${c.name} <span class="st">${c.state}</span></span>
+      <input type="number" class="rent" value="${c.rent}" min="0" step="100" aria-label="${c.name} monthly rent">
+      <input type="number" class="colx" value="${Math.round(c.colIndex*100)}" min="1" max="200" step="1" aria-label="${c.name} cost index">
+      <input type="number" class="cars" value="${cityCars(c)}" min="0" max="4" step="1" aria-label="${c.name} cars needed">
+      <button class="xbtn" title="Remove ${c.name}" aria-label="Remove ${c.name}">×</button></div>`;
+  }).join("");
+  el.querySelectorAll(".cityrow").forEach(row=>{
+    const id = row.dataset.id;
+    row.querySelector(".rent").addEventListener("change", e=>{ DATA.cities[id].rent = +e.target.value||0; render(); });
+    row.querySelector(".colx").addEventListener("change", e=>{ DATA.cities[id].colIndex = (+e.target.value||100)/100; render(); });
+    row.querySelector(".cars").addEventListener("change", e=>{ DATA.cities[id].cars = Math.max(0, Math.round(+e.target.value||0)); render(); });
+    row.querySelector(".xbtn").addEventListener("click", ()=>{ ACTIVE = ACTIVE.filter(x=>x!==id); if(SELECTED===id) SELECTED=null; render(); });
+  });
+}
+function renderAddSel(){
+  const sel = document.getElementById("addsel");
+  const inactive = Object.keys(DATA.cities).filter(id=>!ACTIVE.includes(id));
+  sel.innerHTML = inactive.map(id=>`<option value="${id}">${DATA.cities[id].name}, ${DATA.cities[id].state}</option>`).join("")
+    + `<option value="__custom">Custom city…</option>`;
+  const cs = document.getElementById("cust-state");
+  cs.innerHTML = Object.keys(DATA.states).map(s=>`<option value="${s}">${DATA.states[s].name||s}</option>`).join("");
+}
+
+/* ================= WIRING ================= */
+function bindInput(id, key, isPct){
+  const el = document.getElementById(id);
+  el.value = isPct ? INPUTS[key] : INPUTS[key];
+  el.addEventListener("change", ()=>{ INPUTS[key] = el.type==="checkbox" ? el.checked : (el.tagName==="SELECT" ? el.value : +el.value||0); render(); });
+}
+bindInput("in-gross","gross"); bindInput("in-bonus","bonusPct"); bindInput("in-k401","k401");
+bindInput("in-spend","spend"); bindInput("in-carcost","carCost"); bindInput("in-proptax","propTax"); bindInput("in-otheritem","otherItem");
+document.getElementById("in-status").value = INPUTS.status;
+document.getElementById("in-status").addEventListener("change", e=>{ INPUTS.status=e.target.value; render(); });
+document.getElementById("in-nysrc").checked = INPUTS.nySrc;
+document.getElementById("in-nysrc").addEventListener("change", e=>{ INPUTS.nySrc=e.target.checked; render(); });
+
+document.getElementById("addbtn").addEventListener("click", ()=>{
+  const v = document.getElementById("addsel").value;
+  if(v==="__custom"){ document.getElementById("customform").classList.toggle("show"); return; }
+  if(v && !ACTIVE.includes(v)){ ACTIVE.push(v); render(); }
+});
+document.getElementById("custadd").addEventListener("click", ()=>{
+  const name = document.getElementById("cust-name").value.trim();
+  const state = document.getElementById("cust-state").value;
+  const rent = +document.getElementById("cust-rent").value||0;
+  const colx = (+document.getElementById("cust-col").value||100)/100;
+  const carsN = Math.max(0, Math.round(+document.getElementById("cust-cars").value||1));
+  const ctr = +document.getElementById("cust-citytax").value||0;
+  if(!name){ return; }
+  const id = "custom_"+name.toLowerCase().replace(/[^a-z0-9]/g,"")+"_"+Date.now().toString(36);
+  DATA.cities[id] = {name, state, rent, colIndex:colx, cars:carsN, transit:0};
+  if(ctr>0) DATA.cities[id].cityTax = {type:"flat", rate:ctr/100, base:"stateTaxable"};
+  ACTIVE.push(id);
+  document.getElementById("customform").classList.remove("show");
+  document.getElementById("cust-name").value="";
+  render();
+});
+document.getElementById("applyjson").addEventListener("click", ()=>{
+  const msg = document.getElementById("jsonmsg");
+  try{
+    const d = JSON.parse(document.getElementById("datajson").value);
+    if(!d.federal||!d.federal.brackets||!d.federal.brackets.single) throw new Error("missing federal.brackets.single");
+    if(!d.fica||!d.fica.ssWageBase) throw new Error("missing fica.ssWageBase");
+    if(!d.states||!d.cities) throw new Error("missing states or cities");
+    for(const [k,s] of Object.entries(d.states)){
+      if(!["brackets","flat","none"].includes(s.type)) throw new Error(`states.${k}.type must be brackets|flat|none`);
+      if(s.type==="brackets" && (!s.brackets||!s.brackets.single||!s.brackets.mfj)) throw new Error(`states.${k} needs brackets.single and brackets.mfj`);
+      if(s.type==="flat" && typeof s.rate!=="number") throw new Error(`states.${k} needs a numeric rate`);
+    }
+    for(const [k,c] of Object.entries(d.cities)){
+      if(!d.states[c.state]) throw new Error(`cities.${k}: unknown state "${c.state}"`);
+    }
+    DATA = d; ACTIVE = ACTIVE.filter(id=>DATA.cities[id]);
+    msg.textContent = "Applied ✓"; msg.className = "jsonmsg ok";
+    render();
+  }catch(e){ msg.textContent = "Not applied — "+e.message; msg.className = "jsonmsg err"; }
+});
+document.getElementById("resetjson").addEventListener("click", ()=>{
+  DATA = structuredClone(DEFAULT_DATA); ACTIVE = [...DEFAULT_ACTIVE]; SELECTED = null;
+  document.getElementById("jsonmsg").textContent = "Reset to verified 2026 defaults ✓";
+  document.getElementById("jsonmsg").className = "jsonmsg ok";
+  render();
+});
+render();
+</script>
+
+</body>
+</html>
