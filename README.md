@@ -12,6 +12,7 @@ Deciding whether to leave NYC? This calculator compares what you actually keep �
 - NYC resident brackets, CA mental-health surtax + uncapped SDI, MA millionaire surtax, Philadelphia wage tax
 - First-year **NY nonresident tax on bonuses** earned from NY workdays, net of the new state's resident credit
 - Cars (NYC defaults to zero) + transit passes as an explicit transportation line
+- **Regional & rural presets 1–1.5 hr out** — Hudson Valley, NJ/CT commuter belt (with rail-pass costs and NY's convenience-of-employer rule for kept NYC jobs), plus satellite towns for every metro (Providence, Lancaster, Fort Collins, Tacoma, Athens, and more)
 
 Every rate lives in an editable JSON panel — when new brackets drop, paste them in. Settings persist in your browser (localStorage); nothing is sent anywhere.
 

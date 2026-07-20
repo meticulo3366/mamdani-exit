@@ -94,6 +94,7 @@
   #tip td{padding:1px 0;font-variant-numeric:tabular-nums}
   #tip td:last-child{text-align:right;font-family:var(--mono)}
   #tip .tt{font-weight:700;margin-bottom:4px}
+  #tip .rg{color:var(--ink2);font-size:11px;margin:-3px 0 5px}
 
   /* detail ledger */
   .ledger{margin-top:20px}
@@ -208,6 +209,11 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
         <span><b>First year: bonus still NY-sourced</b>
         <div class="hint">NY taxes bonuses earned from NY workdays even after you leave. Models NY nonresident tax on the bonus, net of your new state's credit. NYC city tax drops off either way.</div></span>
       </label>
+      <label class="toggle">
+        <input type="checkbox" id="in-nycjob">
+        <span><b>Keeping a NYC-based job</b>
+        <div class="hint">For the NJ/CT commuter-belt towns: NY taxes wages worked in NY — or worked remotely for a NY employer, under the convenience-of-employer rule. Applies NY nonresident tax net of your home state's credit. NYC city tax still drops off.</div></span>
+      </label>
     </div>
 
     <div class="panel">
@@ -273,12 +279,13 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
           <li><b>Modeled:</b> 2026 federal brackets &amp; standard deduction (OBBBA-adjusted, Rev. Proc. 2025-32) · FICA with the $184,500 SS wage base + 0.9% additional Medicare · progressive state brackets with state-specific deductions/exemptions · <b>NY tax-benefit recapture</b> (above $107,650 NYAGI your top rate phases in on <i>all</i> income — most calculators skip this) · NYC resident brackets · CA 1% mental-health surtax &amp; 1.2% uncapped SDI payroll tax · MA 4% millionaire surtax · Philadelphia wage tax · federal SALT itemizing with the $40,400 cap and high-income phase-down, auto-compared to the standard deduction per city.</li>
           <li><b>Bonus:</b> annually, a bonus is ordinary income — the 40/60 split changes withholding timing, not the tax bill. The one real effect is first-year sourcing: NY taxes a bonus earned from NY workdays even if paid after you move. The toggle models this net of your new state's resident credit.</li>
           <li><b>Not modeled:</b> AMT · CT bracket-benefit recapture (adds up to ~$3.2k for CT high earners) · IL/CT exemption phase-outs · NJ/NY small payroll deductions (PFL/UI, &lt;0.6% capped) · PA taxing 401(k) deferrals · local sales &amp; property tax differences beyond your input · moving costs · capital gains and investment income (WA taxes those, not wages).</li>
+          <li><b>Regional &amp; rural presets (1–1.5 hr out):</b> commuter-belt and satellite towns for each metro, with commuter-rail pass defaults where relevant (Metro-North/NJ Transit monthlies run $400–530). The NYC belt matters most: Beacon keeps NY state tax but sheds the ~3.9% NYC city tax; Princeton/Asbury Park/New Haven switch you to NJ/CT rates — <b>unless you keep the NYC job</b>, in which case NY's convenience-of-employer rule taxes those wages anyway (that's the toggle; you still shed the city tax). Lancaster note: PA's 3.07% flat rate assumes you don't work <i>in</i> Philadelphia — city wage tax applies to anyone working there, resident or not.</li>
           <li><b>Cars:</b> each city has a car count (only NYC and a few transit-strong cities default below one per household) × your all-in per-car cost, plus a monthly transit-pass figure (NYC $132 unlimited MetroCard; editable per city in the JSON). Car insurance varies a lot by state — FL, NY, and LA metro run high, so adjust the per-car cost if insurance quotes differ materially.</li>
           <li><b>Rents and cost indexes are placeholders</b> — the tax math is exact to the data; the living-cost side is only as good as what you plug in.</li>
           <li>Not tax advice. The NY bonus-sourcing rules and move-timing are genuinely worth a CPA — mistiming a large bonus around a move can cost more than any modeling error here.</li>
         </ul>
         <div class="srcs" id="sources">
-          Sources: IRS Rev. Proc. 2025-32 (2026 inflation adjustments) · Tax Foundation 2026 federal &amp; state brackets · SSA 2026 wage base · NY DTF / NYC Finance published rates. Verified 2026-07-16.
+          Sources: IRS Rev. Proc. 2025-32 (2026 inflation adjustments) · Tax Foundation 2026 federal &amp; state brackets · SSA 2026 wage base · NY DTF / NYC Finance published rates · RI Division of Taxation ADV 2025-22 (2026 uniform schedule). Verified 2026-07-16; RI added 2026-07-20.
         </div>
       </div>
     </details>
@@ -332,6 +339,11 @@ const DEFAULT_DATA = {
     GA:{name:"Georgia", type:"flat", rate:0.0519, stdDed:{single:12000, mfj:24000}},
     NC:{name:"North Carolina", type:"flat", rate:0.0399, stdDed:{single:12750, mfj:25500}},
     AZ:{name:"Arizona", type:"flat", rate:0.025, stdDed:{single:16100, mfj:32200}},
+    RI:{name:"Rhode Island", type:"brackets", stdDed:{single:10550, mfj:21100},
+      brackets:{
+        single:[[82050,0.0375],[186450,0.0475],[null,0.0599]],
+        mfj:[[82050,0.0375],[186450,0.0475],[null,0.0599]]
+      }},
     FL:{name:"Florida", type:"none"}, TX:{name:"Texas", type:"none"}, TN:{name:"Tennessee", type:"none"},
     NV:{name:"Nevada", type:"none"}, WA:{name:"Washington", type:"none"}
   },
@@ -357,14 +369,31 @@ const DEFAULT_DATA = {
     denver:{name:"Denver", state:"CO", rent:1800, colIndex:0.85, cars:1, transit:0},
     atlanta:{name:"Atlanta", state:"GA", rent:1800, colIndex:0.82, cars:1, transit:0},
     charlotte:{name:"Charlotte", state:"NC", rent:1600, colIndex:0.78, cars:1, transit:0},
-    phoenix:{name:"Phoenix", state:"AZ", rent:1500, colIndex:0.80, cars:1, transit:0}
+    phoenix:{name:"Phoenix", state:"AZ", rent:1500, colIndex:0.80, cars:1, transit:0},
+    beacon:{name:"Beacon", state:"NY", rent:2100, colIndex:0.82, cars:1, transit:415, region:"Hudson Valley · ~1:25 Metro-North to NYC"},
+    princeton:{name:"Princeton", state:"NJ", rent:2600, colIndex:0.90, cars:1, transit:460, nycBelt:true, region:"~1:15 NJ Transit to NYC"},
+    asburypark:{name:"Asbury Park", state:"NJ", rent:2200, colIndex:0.84, cars:1, transit:450, nycBelt:true, region:"Jersey Shore · ~1:30 NJ Transit to NYC"},
+    newhaven:{name:"New Haven", state:"CT", rent:1900, colIndex:0.83, cars:1, transit:526, nycBelt:true, region:"~1:40 Metro-North to NYC"},
+    lancaster:{name:"Lancaster", state:"PA", rent:1500, colIndex:0.75, cars:1, transit:0, region:"~1:10 Amtrak to Philadelphia"},
+    worcester:{name:"Worcester", state:"MA", rent:1800, colIndex:0.82, cars:1, transit:0, region:"~1:00 to Boston"},
+    providence:{name:"Providence", state:"RI", rent:1900, colIndex:0.85, cars:1, transit:0, region:"~1:00 to Boston (MBTA/Amtrak)"},
+    fortcollins:{name:"Fort Collins", state:"CO", rent:1700, colIndex:0.83, cars:1, transit:0, region:"~1:15 to Denver"},
+    cosprings:{name:"Colorado Springs", state:"CO", rent:1500, colIndex:0.80, cars:1, transit:0, region:"~1:10 to Denver"},
+    tacoma:{name:"Tacoma", state:"WA", rent:1700, colIndex:0.85, cars:1, transit:0, region:"~0:50 to Seattle"},
+    sacramento:{name:"Sacramento", state:"CA", rent:1800, colIndex:0.85, cars:1, transit:0, region:"~1:30 to San Francisco"},
+    riverside:{name:"Riverside", state:"CA", rent:1900, colIndex:0.85, cars:1, transit:0, region:"Inland Empire · ~1:15 to LA"},
+    newbraunfels:{name:"New Braunfels", state:"TX", rent:1400, colIndex:0.75, cars:1, transit:0, region:"~0:50 to Austin · ~0:35 to San Antonio"},
+    murfreesboro:{name:"Murfreesboro", state:"TN", rent:1400, colIndex:0.74, cars:1, transit:0, region:"~0:45 to Nashville"},
+    athens:{name:"Athens", state:"GA", rent:1400, colIndex:0.74, cars:1, transit:0, region:"~1:25 to Atlanta"},
+    westpalm:{name:"West Palm Beach", state:"FL", rent:2300, colIndex:0.85, cars:1, transit:0, region:"~1:15 to Miami · Brightline ~1:20"},
+    hickory:{name:"Hickory", state:"NC", rent:1200, colIndex:0.70, cars:1, transit:0, region:"~1:00 to Charlotte"}
   }
 };
-const DEFAULT_ACTIVE = ["nyc","miami","austin","nashville","seattle","la","boston","chicago","denver","atlanta"];
-const DEFAULT_INPUTS = {gross:200000, bonusPct:40, status:"single", k401:0, spend:3000, carCost:750, propTax:0, otherItem:0, nySrc:false};
+const DEFAULT_ACTIVE = ["nyc","miami","austin","nashville","seattle","la","boston","chicago","denver","atlanta","beacon","princeton","newhaven"];
+const DEFAULT_INPUTS = {gross:100000, bonusPct:40, status:"single", k401:0, spend:3000, carCost:750, propTax:0, otherItem:0, nySrc:false, nycJob:false};
 
 /* ================= STATE ================= */
-const LS = {data:"nycexit.data.v2", active:"nycexit.active.v2", inputs:"nycexit.inputs.v1"};
+const LS = {data:"nycexit.data.v3", active:"nycexit.active.v3", inputs:"nycexit.inputs.v2"};
 // helpers for cities saved before cars/transit existed
 const cityCars = c => (c.cars ?? (c.baseline ? 0 : 1));
 const cityTransit = c => (c.transit ?? (c.baseline ? 132 : 0));
@@ -434,9 +463,16 @@ function calcCity(cityId){
     if(ct.type==="flat") cityTaxAmt = ct.rate * (ct.base==="gross" ? gross : sres.taxable);
     else cityTaxAmt = progTax(ct.brackets[status], sres.taxable);
   }
-  // First-year NY-sourced bonus (non-NY residents): NY nonresident tax on bonus share, net of resident-state credit
+  // Commuter belt + NYC job: all wages NY-sourced (convenience-of-employer rule), net of home-state credit
+  let nyCommute = 0;
+  const commutes = INPUTS.nycJob && city.nycBelt && city.state !== "NY";
+  if(commutes){
+    nyCommute = Math.max(0, stateTax(DATA.states.NY, wages, status).tax - sres.tax);
+  }
+  // First-year NY-sourced bonus (non-NY residents): NY nonresident tax on bonus share, net of resident-state credit.
+  // Skipped when the NYC-job toggle already sources ALL wages to NY for this city.
   let nyExtra = 0;
-  if(nySrc && city.state !== "NY"){
+  if(nySrc && city.state !== "NY" && !commutes){
     const share = Math.min(1, Math.max(0, bonusPct/100));
     const nyOnBonus = stateTax(DATA.states.NY, wages, status).tax * share;
     const credit = Math.min(nyOnBonus, sres.tax * share);
@@ -446,14 +482,14 @@ function calcCity(cityId){
   const agi = wages;
   const sc = DATA.federal.salt;
   const cap = Math.min(sc.cap, Math.max(sc.floor, sc.cap - sc.phaseoutRate * Math.max(0, agi - sc.phaseoutStart)));
-  const saltPaid = sres.tax + cityTaxAmt + nyExtra + (propTax||0);
+  const saltPaid = sres.tax + cityTaxAmt + nyExtra + nyCommute + (propTax||0);
   const itemized = Math.min(saltPaid, cap) + (otherItem||0);
   const std = DATA.federal.stdDed[status];
   const usedItemized = itemized > std;
   const fedTaxable = Math.max(0, agi - Math.max(std, itemized));
   const fed = progTax(DATA.federal.brackets[status], fedTaxable);
 
-  const totalTax = fed + ss + medicare + sres.tax + payroll + cityTaxAmt + nyExtra;
+  const totalTax = fed + ss + medicare + sres.tax + payroll + cityTaxAmt + nyExtra + nyCommute;
   const takeHome = gross - k401 - totalTax;
   const housing = (city.rent||0) * 12;
   const otherCOL = (spend||0) * 12 * (city.colIndex||1);
@@ -461,11 +497,11 @@ function calcCity(cityId){
   const transport = cars * (INPUTS.carCost||0) * 12 + transitMo * 12;
   const disc = takeHome - housing - otherCOL - transport;
   return {id:cityId, name:city.name, stateCode:city.state, stateName:(st.name||city.state),
-    fed, ss, medicare, state:sres.tax, payroll, cityTax:cityTaxAmt, nyExtra,
-    payrollLabel: st.payroll ? st.payroll.label : null,
+    fed, ss, medicare, state:sres.tax, payroll, cityTax:cityTaxAmt, nyExtra, nyCommute,
+    payrollLabel: st.payroll ? st.payroll.label : null, region: city.region || null,
     totalTax, takeHome, housing, otherCOL, transport, cars, transitMo, disc, usedItemized,
     fedDed: Math.max(std, itemized), effRate: gross>0 ? totalTax/gross : 0,
-    stateLocal: sres.tax + payroll + cityTaxAmt + nyExtra, baseline: !!city.baseline};
+    stateLocal: sres.tax + payroll + cityTaxAmt + nyExtra + nyCommute, baseline: !!city.baseline};
 }
 
 /* ================= FORMATTING ================= */
@@ -535,7 +571,7 @@ function renderChart(res, base){
 function showTip(e, r){
   if(!r) return;
   const tip = document.getElementById("tip");
-  tip.innerHTML = `<div class="tt">${r.name}, ${r.stateName}</div><table>
+  tip.innerHTML = `<div class="tt">${r.name}, ${r.stateName}</div>${r.region?`<div class="rg">${r.region}</div>`:""}<table>
     <tr><td>Federal + FICA</td><td>${$(r.fed+r.ss+r.medicare)}</td></tr>
     <tr><td>State + local tax</td><td>${$(r.stateLocal)}</td></tr>
     <tr><td>Take-home</td><td>${$(r.takeHome)}</td></tr>
@@ -567,6 +603,7 @@ function renderLedger(res, base){
   rows.push(`<tr><td>State income tax (${r.stateName})</td>${col(r.state, hasBase?base.state:0)}</tr>`);
   if(r.payroll>0 || (hasBase&&base.payroll>0)) rows.push(`<tr><td>${r.payrollLabel||"State payroll tax"}</td>${col(r.payroll, hasBase?base.payroll:0)}</tr>`);
   rows.push(`<tr><td>City income tax</td>${col(r.cityTax, hasBase?base.cityTax:0)}</tr>`);
+  if(r.nyCommute>0) rows.push(`<tr><td>NY nonresident tax — NYC job (net of credit)</td>${col(r.nyCommute, 0)}</tr>`);
   if(r.nyExtra>0) rows.push(`<tr><td>NY nonresident tax on bonus (yr 1)</td>${col(r.nyExtra, 0)}</tr>`);
   rows.push(`<tr><td><b>Total tax (${pct(r.effRate)} effective)</b></td>${col(r.totalTax, hasBase?base.totalTax:0)}</tr>`);
   rows.push(`<tr class="grp"><td colspan="4">Living costs</td></tr>`);
@@ -593,7 +630,7 @@ function renderCityList(){
   el.innerHTML = ACTIVE.filter(id=>DATA.cities[id]).map(id=>{
     const c = DATA.cities[id];
     return `<div class="cityrow" data-id="${id}">
-      <span class="nm">${c.name} <span class="st">${c.state}</span></span>
+      <span class="nm" ${c.region?`title="${c.region}"`:""}>${c.name} <span class="st">${c.state}</span></span>
       <input type="number" class="rent" value="${c.rent}" min="0" step="100" aria-label="${c.name} monthly rent">
       <input type="number" class="colx" value="${Math.round(c.colIndex*100)}" min="1" max="200" step="1" aria-label="${c.name} cost index">
       <input type="number" class="cars" value="${cityCars(c)}" min="0" max="4" step="1" aria-label="${c.name} cars needed">
@@ -610,7 +647,12 @@ function renderCityList(){
 function renderAddSel(){
   const sel = document.getElementById("addsel");
   const inactive = Object.keys(DATA.cities).filter(id=>!ACTIVE.includes(id));
-  sel.innerHTML = inactive.map(id=>`<option value="${id}">${DATA.cities[id].name}, ${DATA.cities[id].state}</option>`).join("")
+  const opt = id=>{const c=DATA.cities[id]; return `<option value="${id}">${c.name}, ${c.state}${c.region?` — ${c.region}`:""}</option>`;};
+  const metros = inactive.filter(id=>!DATA.cities[id].region);
+  const regional = inactive.filter(id=>DATA.cities[id].region);
+  sel.innerHTML =
+    (metros.length?`<optgroup label="Major metros">${metros.map(opt).join("")}</optgroup>`:"")
+    + (regional.length?`<optgroup label="Regional &amp; rural — 1–1.5 hr out">${regional.map(opt).join("")}</optgroup>`:"")
     + `<option value="__custom">Custom city…</option>`;
   const cs = document.getElementById("cust-state");
   cs.innerHTML = Object.keys(DATA.states).map(s=>`<option value="${s}">${DATA.states[s].name||s}</option>`).join("");
@@ -628,6 +670,8 @@ document.getElementById("in-status").value = INPUTS.status;
 document.getElementById("in-status").addEventListener("change", e=>{ INPUTS.status=e.target.value; render(); });
 document.getElementById("in-nysrc").checked = INPUTS.nySrc;
 document.getElementById("in-nysrc").addEventListener("change", e=>{ INPUTS.nySrc=e.target.checked; render(); });
+document.getElementById("in-nycjob").checked = INPUTS.nycJob;
+document.getElementById("in-nycjob").addEventListener("change", e=>{ INPUTS.nycJob=e.target.checked; render(); });
 
 document.getElementById("addbtn").addEventListener("click", ()=>{
   const v = document.getElementById("addsel").value;
