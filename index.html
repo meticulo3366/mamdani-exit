@@ -210,6 +210,22 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
         <div class="hint">NY taxes bonuses earned from NY workdays even after you leave. Models NY nonresident tax on the bonus, net of your new state's credit. NYC city tax drops off either way.</div></span>
       </label>
       <label class="toggle">
+        <input type="checkbox" id="in-inperson">
+        <span><b>I work in person</b>
+        <div class="hint">Prices your commute: 2 × one-way time × days/week × 48 weeks × your hourly value. Belt-town defaults assume commuting to the anchor metro — edit per-city minutes in the tax-data JSON.</div></span>
+      </label>
+      <div class="row2" id="commuterow">
+        <div>
+          <label class="lbl" for="in-commutedays">Office days /wk</label>
+          <input type="number" id="in-commutedays" min="0" max="7" step="1">
+        </div>
+        <div>
+          <label class="lbl" for="in-timevalue">Your time ($/hr)</label>
+          <input type="number" id="in-timevalue" min="0" step="5">
+        </div>
+      </div>
+      <div class="hint" style="margin-top:-6px">US DOT convention values personal travel time at ~50% of earnings — $25/hr ≈ a $100k salary. It's an imputed cost, not cash: it lowers the ranking, not your bank balance.</div>
+      <label class="toggle">
         <input type="checkbox" id="in-nycjob">
         <span><b>Keeping a NYC-based job</b>
         <div class="hint">For the NJ/CT commuter-belt towns: NY taxes wages worked in NY — or worked remotely for a NY employer, under the convenience-of-employer rule. Applies NY nonresident tax net of your home state's credit. NYC city tax still drops off.</div></span>
@@ -230,6 +246,7 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
         <input type="number" id="cust-rent" placeholder="Rent /mo" min="0" step="100">
         <input type="number" id="cust-col" placeholder="Cost idx %" min="1" max="200" step="1">
         <input type="number" id="cust-cars" placeholder="Cars" min="0" max="4" step="1">
+        <input type="number" id="cust-commute" placeholder="Commute min" min="0" step="5">
         <input type="number" id="cust-citytax" placeholder="City tax %" min="0" max="10" step="0.1">
         <button class="btn" id="custadd" style="grid-column:1/3">Add custom city</button>
       </div>
@@ -280,6 +297,8 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
           <li><b>Bonus:</b> annually, a bonus is ordinary income — the 40/60 split changes withholding timing, not the tax bill. The one real effect is first-year sourcing: NY taxes a bonus earned from NY workdays even if paid after you move. The toggle models this net of your new state's resident credit.</li>
           <li><b>Not modeled:</b> AMT · CT bracket-benefit recapture (adds up to ~$3.2k for CT high earners) · IL/CT exemption phase-outs · NJ/NY small payroll deductions (PFL/UI, &lt;0.6% capped) · PA taxing 401(k) deferrals · local sales &amp; property tax differences beyond your input · moving costs · capital gains and investment income (WA taxes those, not wages).</li>
           <li><b>Regional &amp; rural presets (1–1.5 hr out):</b> commuter-belt and satellite towns for each metro, with commuter-rail pass defaults where relevant (Metro-North/NJ Transit monthlies run $400–530). The NYC belt matters most: Beacon keeps NY state tax but sheds the ~3.9% NYC city tax; Princeton/Asbury Park/New Haven switch you to NJ/CT rates — <b>unless you keep the NYC job</b>, in which case NY's convenience-of-employer rule taxes those wages anyway (that's the toggle; you still shed the city tax). Lancaster note: PA's 3.07% flat rate assumes you don't work <i>in</i> Philadelphia — city wage tax applies to anyone working there, resident or not.</li>
+          <li><b>Commute time value (in-person work):</b> annual commute hours = 2 × one-way minutes × office days/week × 48 weeks, priced at your $/hr and subtracted from discretionary income as an <i>imputed</i> cost. US DOT guidance values personal travel time near 50% of the wage rate (~$25/hr at $100k, ~$50/hr at $200k). A Beacon-to-NYC rail commute 3 days/week is ~400 hours a year — set your own rate honestly and the belt-town math changes a lot.</li>
+          <li><b>PA local earned-income tax:</b> nearly every PA municipality levies one — modeled at a typical 1.1% for Lancaster/Allentown (editable), 3% for Pittsburgh, and Philadelphia's exact 3.74% wage tax. PA also taxes 401(k) employee deferrals, which this model doesn't.</li>
           <li><b>Cars:</b> each city has a car count (only NYC and a few transit-strong cities default below one per household) × your all-in per-car cost, plus a monthly transit-pass figure (NYC $132 unlimited MetroCard; editable per city in the JSON). Car insurance varies a lot by state — FL, NY, and LA metro run high, so adjust the per-car cost if insurance quotes differ materially.</li>
           <li><b>Rents and cost indexes are placeholders</b> — the tax math is exact to the data; the living-cost side is only as good as what you plug in.</li>
           <li>Not tax advice. The NY bonus-sourcing rules and move-timing are genuinely worth a CPA — mistiming a large bonus around a move can cost more than any modeling error here.</li>
@@ -348,52 +367,60 @@ const DEFAULT_DATA = {
     NV:{name:"Nevada", type:"none"}, WA:{name:"Washington", type:"none"}
   },
   cities:{
-    nyc:{name:"New York", state:"NY", rent:4200, colIndex:1.00, cars:0, transit:132, baseline:true,
+    nyc:{name:"New York", state:"NY", rent:4200, colIndex:1.00, commuteMin:35, cars:0, transit:132, baseline:true,
       cityTax:{type:"brackets", base:"stateTaxable",
         brackets:{single:[[12000,0.03078],[25000,0.03762],[50000,0.03819],[null,0.03876]],
                   mfj:[[21600,0.03078],[45000,0.03762],[90000,0.03819],[null,0.03876]]}}},
-    miami:{name:"Miami", state:"FL", rent:2800, colIndex:0.88, cars:1, transit:0},
-    austin:{name:"Austin", state:"TX", rent:1700, colIndex:0.82, cars:1, transit:0},
-    dallas:{name:"Dallas", state:"TX", rent:1600, colIndex:0.80, cars:1, transit:0},
-    nashville:{name:"Nashville", state:"TN", rent:1650, colIndex:0.80, cars:1, transit:0},
-    vegas:{name:"Las Vegas", state:"NV", rent:1500, colIndex:0.78, cars:1, transit:0},
-    seattle:{name:"Seattle", state:"WA", rent:2300, colIndex:0.92, cars:1, transit:100},
-    sf:{name:"San Francisco", state:"CA", rent:3300, colIndex:0.98, cars:0, transit:85},
-    la:{name:"Los Angeles", state:"CA", rent:2400, colIndex:0.90, cars:1, transit:0},
-    boston:{name:"Boston", state:"MA", rent:3100, colIndex:0.95, cars:0, transit:90},
-    jerseycity:{name:"Jersey City", state:"NJ", rent:3300, colIndex:0.92, cars:0, transit:130},
-    stamford:{name:"Stamford", state:"CT", rent:2800, colIndex:0.90, cars:1, transit:0},
-    chicago:{name:"Chicago", state:"IL", rent:2100, colIndex:0.85, cars:0, transit:75},
-    philly:{name:"Philadelphia", state:"PA", rent:1800, colIndex:0.83, cars:0, transit:96,
+    miami:{name:"Miami", state:"FL", rent:2800, colIndex:0.88, commuteMin:30, cars:1, transit:0},
+    austin:{name:"Austin", state:"TX", rent:1700, colIndex:0.82, commuteMin:25, cars:1, transit:0},
+    dallas:{name:"Dallas", state:"TX", rent:1600, colIndex:0.80, commuteMin:28, cars:1, transit:0},
+    nashville:{name:"Nashville", state:"TN", rent:1650, colIndex:0.80, commuteMin:25, cars:1, transit:0},
+    vegas:{name:"Las Vegas", state:"NV", rent:1500, colIndex:0.78, commuteMin:25, cars:1, transit:0},
+    seattle:{name:"Seattle", state:"WA", rent:2300, colIndex:0.92, commuteMin:30, cars:1, transit:100},
+    sf:{name:"San Francisco", state:"CA", rent:3300, colIndex:0.98, commuteMin:30, cars:0, transit:85},
+    la:{name:"Los Angeles", state:"CA", rent:2400, colIndex:0.90, commuteMin:35, cars:1, transit:0},
+    boston:{name:"Boston", state:"MA", rent:3100, colIndex:0.95, commuteMin:30, cars:0, transit:90},
+    jerseycity:{name:"Jersey City", state:"NJ", rent:3300, colIndex:0.92, commuteMin:35, cars:0, transit:130},
+    stamford:{name:"Stamford", state:"CT", rent:2800, colIndex:0.90, commuteMin:60, cars:1, transit:280, nycBelt:true},
+    chicago:{name:"Chicago", state:"IL", rent:2100, colIndex:0.85, commuteMin:30, cars:0, transit:75},
+    philly:{name:"Philadelphia", state:"PA", rent:1800, colIndex:0.83, commuteMin:30, cars:0, transit:96,
       cityTax:{type:"flat", rate:0.0374, base:"gross", label:"Philadelphia wage tax"}},
-    denver:{name:"Denver", state:"CO", rent:1800, colIndex:0.85, cars:1, transit:0},
-    atlanta:{name:"Atlanta", state:"GA", rent:1800, colIndex:0.82, cars:1, transit:0},
-    charlotte:{name:"Charlotte", state:"NC", rent:1600, colIndex:0.78, cars:1, transit:0},
-    phoenix:{name:"Phoenix", state:"AZ", rent:1500, colIndex:0.80, cars:1, transit:0},
-    beacon:{name:"Beacon", state:"NY", rent:2100, colIndex:0.82, cars:1, transit:415, region:"Hudson Valley · ~1:25 Metro-North to NYC"},
-    princeton:{name:"Princeton", state:"NJ", rent:2600, colIndex:0.90, cars:1, transit:460, nycBelt:true, region:"~1:15 NJ Transit to NYC"},
-    asburypark:{name:"Asbury Park", state:"NJ", rent:2200, colIndex:0.84, cars:1, transit:450, nycBelt:true, region:"Jersey Shore · ~1:30 NJ Transit to NYC"},
-    newhaven:{name:"New Haven", state:"CT", rent:1900, colIndex:0.83, cars:1, transit:526, nycBelt:true, region:"~1:40 Metro-North to NYC"},
-    lancaster:{name:"Lancaster", state:"PA", rent:1500, colIndex:0.75, cars:1, transit:0, region:"~1:10 Amtrak to Philadelphia"},
-    worcester:{name:"Worcester", state:"MA", rent:1800, colIndex:0.82, cars:1, transit:0, region:"~1:00 to Boston"},
-    providence:{name:"Providence", state:"RI", rent:1900, colIndex:0.85, cars:1, transit:0, region:"~1:00 to Boston (MBTA/Amtrak)"},
-    fortcollins:{name:"Fort Collins", state:"CO", rent:1700, colIndex:0.83, cars:1, transit:0, region:"~1:15 to Denver"},
-    cosprings:{name:"Colorado Springs", state:"CO", rent:1500, colIndex:0.80, cars:1, transit:0, region:"~1:10 to Denver"},
-    tacoma:{name:"Tacoma", state:"WA", rent:1700, colIndex:0.85, cars:1, transit:0, region:"~0:50 to Seattle"},
-    sacramento:{name:"Sacramento", state:"CA", rent:1800, colIndex:0.85, cars:1, transit:0, region:"~1:30 to San Francisco"},
-    riverside:{name:"Riverside", state:"CA", rent:1900, colIndex:0.85, cars:1, transit:0, region:"Inland Empire · ~1:15 to LA"},
-    newbraunfels:{name:"New Braunfels", state:"TX", rent:1400, colIndex:0.75, cars:1, transit:0, region:"~0:50 to Austin · ~0:35 to San Antonio"},
-    murfreesboro:{name:"Murfreesboro", state:"TN", rent:1400, colIndex:0.74, cars:1, transit:0, region:"~0:45 to Nashville"},
-    athens:{name:"Athens", state:"GA", rent:1400, colIndex:0.74, cars:1, transit:0, region:"~1:25 to Atlanta"},
-    westpalm:{name:"West Palm Beach", state:"FL", rent:2300, colIndex:0.85, cars:1, transit:0, region:"~1:15 to Miami · Brightline ~1:20"},
-    hickory:{name:"Hickory", state:"NC", rent:1200, colIndex:0.70, cars:1, transit:0, region:"~1:00 to Charlotte"}
+    denver:{name:"Denver", state:"CO", rent:1800, colIndex:0.85, commuteMin:28, cars:1, transit:0},
+    atlanta:{name:"Atlanta", state:"GA", rent:1800, colIndex:0.82, commuteMin:32, cars:1, transit:0},
+    charlotte:{name:"Charlotte", state:"NC", rent:1600, colIndex:0.78, commuteMin:26, cars:1, transit:0},
+    phoenix:{name:"Phoenix", state:"AZ", rent:1500, colIndex:0.80, commuteMin:28, cars:1, transit:0},
+    beacon:{name:"Beacon", state:"NY", rent:2100, colIndex:0.82, commuteMin:85, cars:1, transit:415, region:"Hudson Valley · ~1:25 Metro-North to NYC"},
+    princeton:{name:"Princeton", state:"NJ", rent:2600, colIndex:0.90, commuteMin:75, cars:1, transit:460, nycBelt:true, region:"~1:15 NJ Transit to NYC"},
+    asburypark:{name:"Asbury Park", state:"NJ", rent:2200, colIndex:0.84, commuteMin:90, cars:1, transit:450, nycBelt:true, region:"Jersey Shore · ~1:30 NJ Transit to NYC"},
+    newhaven:{name:"New Haven", state:"CT", rent:1900, colIndex:0.83, commuteMin:100, cars:1, transit:526, nycBelt:true, region:"~1:40 Metro-North to NYC"},
+    lancaster:{name:"Lancaster", state:"PA", rent:1500, colIndex:0.75, commuteMin:70, cars:1, transit:0, region:"~1:10 Amtrak to Philadelphia",
+      cityTax:{type:"flat", rate:0.011, base:"stateTaxable", label:"PA local EIT (typical, editable)"}},
+    worcester:{name:"Worcester", state:"MA", rent:1800, colIndex:0.82, commuteMin:60, cars:1, transit:0, region:"~1:00 to Boston"},
+    providence:{name:"Providence", state:"RI", rent:1900, colIndex:0.85, commuteMin:60, cars:1, transit:0, region:"~1:00 to Boston (MBTA/Amtrak)"},
+    fortcollins:{name:"Fort Collins", state:"CO", rent:1700, colIndex:0.83, commuteMin:75, cars:1, transit:0, region:"~1:15 to Denver"},
+    cosprings:{name:"Colorado Springs", state:"CO", rent:1500, colIndex:0.80, commuteMin:70, cars:1, transit:0, region:"~1:10 to Denver"},
+    tacoma:{name:"Tacoma", state:"WA", rent:1700, colIndex:0.85, commuteMin:50, cars:1, transit:0, region:"~0:50 to Seattle"},
+    sacramento:{name:"Sacramento", state:"CA", rent:1800, colIndex:0.85, commuteMin:90, cars:1, transit:0, region:"~1:30 to San Francisco"},
+    riverside:{name:"Riverside", state:"CA", rent:1900, colIndex:0.85, commuteMin:75, cars:1, transit:0, region:"Inland Empire · ~1:15 to LA"},
+    newbraunfels:{name:"New Braunfels", state:"TX", rent:1400, colIndex:0.75, commuteMin:50, cars:1, transit:0, region:"~0:50 to Austin · ~0:35 to San Antonio"},
+    murfreesboro:{name:"Murfreesboro", state:"TN", rent:1400, colIndex:0.74, commuteMin:45, cars:1, transit:0, region:"~0:45 to Nashville"},
+    athens:{name:"Athens", state:"GA", rent:1400, colIndex:0.74, commuteMin:85, cars:1, transit:0, region:"~1:25 to Atlanta"},
+    westpalm:{name:"West Palm Beach", state:"FL", rent:2300, colIndex:0.85, commuteMin:75, cars:1, transit:0, region:"~1:15 to Miami · Brightline ~1:20"},
+    hickory:{name:"Hickory", state:"NC", rent:1200, colIndex:0.70, commuteMin:60, cars:1, transit:0, region:"~1:00 to Charlotte"},
+    pittsburgh:{name:"Pittsburgh", state:"PA", rent:1400, colIndex:0.78, commuteMin:26, cars:1, transit:0,
+      cityTax:{type:"flat", rate:0.03, base:"stateTaxable", label:"Pittsburgh resident EIT (city + school)"}},
+    allentown:{name:"Allentown", state:"PA", rent:1500, colIndex:0.76, commuteMin:100, cars:1, transit:480, nycBelt:true,
+      region:"Lehigh Valley · ~1:40 bus to NYC",
+      cityTax:{type:"flat", rate:0.011, base:"stateTaxable", label:"PA local EIT (typical, editable)"}},
+    newport:{name:"Newport", state:"RI", rent:2100, colIndex:0.88, commuteMin:40, cars:1, transit:0,
+      region:"~0:40 to Providence · ~1:30 to Boston"}
   }
 };
 const DEFAULT_ACTIVE = ["nyc","miami","austin","nashville","seattle","la","boston","chicago","denver","atlanta","beacon","princeton","newhaven"];
-const DEFAULT_INPUTS = {gross:100000, bonusPct:40, status:"single", k401:0, spend:3000, carCost:750, propTax:0, otherItem:0, nySrc:false, nycJob:false};
+const DEFAULT_INPUTS = {gross:100000, bonusPct:40, status:"single", k401:0, spend:3000, carCost:750, propTax:0, otherItem:0, nySrc:false, nycJob:false, inPerson:false, commuteDays:3, timeValue:25};
 
 /* ================= STATE ================= */
-const LS = {data:"nycexit.data.v3", active:"nycexit.active.v3", inputs:"nycexit.inputs.v2"};
+const LS = {data:"nycexit.data.v4", active:"nycexit.active.v4", inputs:"nycexit.inputs.v2"};
 // helpers for cities saved before cars/transit existed
 const cityCars = c => (c.cars ?? (c.baseline ? 0 : 1));
 const cityTransit = c => (c.transit ?? (c.baseline ? 132 : 0));
@@ -495,11 +522,18 @@ function calcCity(cityId){
   const otherCOL = (spend||0) * 12 * (city.colIndex||1);
   const cars = cityCars(city), transitMo = cityTransit(city);
   const transport = cars * (INPUTS.carCost||0) * 12 + transitMo * 12;
-  const disc = takeHome - housing - otherCOL - transport;
+  // Time value of commuting (imputed, only when working in person)
+  const commuteMin = city.commuteMin ?? 30;
+  let commuteHrs = 0, timeCost = 0;
+  if(INPUTS.inPerson){
+    commuteHrs = 2 * (commuteMin/60) * (INPUTS.commuteDays||0) * 48;
+    timeCost = commuteHrs * (INPUTS.timeValue||0);
+  }
+  const disc = takeHome - housing - otherCOL - transport - timeCost;
   return {id:cityId, name:city.name, stateCode:city.state, stateName:(st.name||city.state),
     fed, ss, medicare, state:sres.tax, payroll, cityTax:cityTaxAmt, nyExtra, nyCommute,
     payrollLabel: st.payroll ? st.payroll.label : null, region: city.region || null,
-    totalTax, takeHome, housing, otherCOL, transport, cars, transitMo, disc, usedItemized,
+    totalTax, takeHome, housing, otherCOL, transport, cars, transitMo, commuteMin, commuteHrs, timeCost, disc, usedItemized,
     fedDed: Math.max(std, itemized), effRate: gross>0 ? totalTax/gross : 0,
     stateLocal: sres.tax + payroll + cityTaxAmt + nyExtra + nyCommute, baseline: !!city.baseline};
 }
@@ -577,6 +611,7 @@ function showTip(e, r){
     <tr><td>Take-home</td><td>${$(r.takeHome)}</td></tr>
     <tr><td>Housing + living</td><td>${$(r.housing+r.otherCOL)}</td></tr>
     <tr><td>Transport (${r.cars} car${r.cars===1?"":"s"}${r.transitMo>0?" + transit":""})</td><td>${$(r.transport)}</td></tr>
+    ${r.timeCost>0?`<tr><td>Commute time (${r.commuteMin} min · ${Math.round(r.commuteHrs)} h/yr)</td><td>${$(r.timeCost)}</td></tr>`:""}
     <tr><td><b>Discretionary</b></td><td><b>${$(r.disc)}</b></td></tr></table>`;
   tip.style.display="block";
   const pad=14, w=tip.offsetWidth, h=tip.offsetHeight;
@@ -611,16 +646,18 @@ function renderLedger(res, base){
   const carLbl = x => `${x.cars} car${x.cars===1?"":"s"}${x.transitMo>0?" + transit":""}`;
   rows.push(`<tr><td>Transportation (${carLbl(r)}${hasBase?` vs ${carLbl(base)}`:""})</td>${col(r.transport, hasBase?base.transport:0)}</tr>`);
   rows.push(`<tr><td>Other living costs</td>${col(r.otherCOL, hasBase?base.otherCOL:0)}</tr>`);
+  if(r.timeCost>0 || (hasBase&&base.timeCost>0)) rows.push(`<tr><td>Commute time, imputed (${Math.round(r.commuteHrs)}${hasBase?` vs ${Math.round(base.commuteHrs)}`:""} h/yr @ ${$(INPUTS.timeValue)}/hr)</td>${col(r.timeCost, hasBase?base.timeCost:0)}</tr>`);
   const keep = hasBase ? r.disc-base.disc : 0;
   rows.push(`<tr class="tot"><td>Discretionary income</td><td>${$(r.disc)}</td>${hasBase?`<td>${$(base.disc)}</td><td class="${keep>=0?"pos":"neg"}">${sgn(keep)}</td>`:""}</tr>`);
   document.getElementById("ledger").innerHTML = rows.join("");
 }
 function renderFullTable(res, base){
-  const rows = [`<tr><th>City</th><th>Take-home</th><th>Eff. tax</th><th>State+local</th><th>Housing</th><th>Transport</th><th>Other COL</th><th>Discretionary</th><th>Δ vs NYC</th></tr>`];
+  const showTime = INPUTS.inPerson;
+  const rows = [`<tr><th>City</th><th>Take-home</th><th>Eff. tax</th><th>State+local</th><th>Housing</th><th>Transport</th>${showTime?"<th>Commute time</th>":""}<th>Other COL</th><th>Discretionary</th><th>Δ vs NYC</th></tr>`];
   for(const r of res){
     const d = base && r.id!==base.id ? r.disc-base.disc : null;
     rows.push(`<tr><td>${r.name}, ${r.stateCode}</td><td>${$(r.takeHome)}</td><td>${pct(r.effRate)}</td>
-      <td>${$(r.stateLocal)}</td><td>${$(r.housing)}</td><td>${$(r.transport)}</td><td>${$(r.otherCOL)}</td><td>${$(r.disc)}</td>
+      <td>${$(r.stateLocal)}</td><td>${$(r.housing)}</td><td>${$(r.transport)}</td>${showTime?`<td>${$(r.timeCost)}</td>`:""}<td>${$(r.otherCOL)}</td><td>${$(r.disc)}</td>
       <td class="${d===null?"":(d>=0?"pos":"neg")}" style="${d===null?"":`color:var(--${d>=0?"pos":"neg"})`}">${d===null?"—":sgn(d)}</td></tr>`);
   }
   document.getElementById("fulltable").innerHTML = rows.join("");
@@ -672,6 +709,9 @@ document.getElementById("in-nysrc").checked = INPUTS.nySrc;
 document.getElementById("in-nysrc").addEventListener("change", e=>{ INPUTS.nySrc=e.target.checked; render(); });
 document.getElementById("in-nycjob").checked = INPUTS.nycJob;
 document.getElementById("in-nycjob").addEventListener("change", e=>{ INPUTS.nycJob=e.target.checked; render(); });
+bindInput("in-commutedays","commuteDays"); bindInput("in-timevalue","timeValue");
+document.getElementById("in-inperson").checked = INPUTS.inPerson;
+document.getElementById("in-inperson").addEventListener("change", e=>{ INPUTS.inPerson=e.target.checked; render(); });
 
 document.getElementById("addbtn").addEventListener("click", ()=>{
   const v = document.getElementById("addsel").value;
@@ -687,7 +727,8 @@ document.getElementById("custadd").addEventListener("click", ()=>{
   const ctr = +document.getElementById("cust-citytax").value||0;
   if(!name){ return; }
   const id = "custom_"+name.toLowerCase().replace(/[^a-z0-9]/g,"")+"_"+Date.now().toString(36);
-  DATA.cities[id] = {name, state, rent, colIndex:colx, cars:carsN, transit:0};
+  DATA.cities[id] = {name, state, rent, colIndex:colx, cars:carsN, transit:0,
+    commuteMin: Math.max(0, Math.round(+document.getElementById("cust-commute").value||30))};
   if(ctr>0) DATA.cities[id].cityTax = {type:"flat", rate:ctr/100, base:"stateTaxable"};
   ACTIVE.push(id);
   document.getElementById("customform").classList.remove("show");
