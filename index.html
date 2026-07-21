@@ -416,11 +416,11 @@ const DEFAULT_DATA = {
       region:"~0:40 to Providence · ~1:30 to Boston"}
   }
 };
-const DEFAULT_ACTIVE = ["nyc","miami","austin","nashville","seattle","la","boston","chicago","denver","atlanta","beacon","princeton","newhaven"];
+const DEFAULT_ACTIVE = ["nyc","miami","austin","nashville","vegas","seattle","la","boston","chicago","denver","atlanta","providence","lancaster","pittsburgh","beacon","princeton","newhaven"];
 const DEFAULT_INPUTS = {gross:100000, bonusPct:40, status:"single", k401:0, spend:3000, carCost:750, propTax:0, otherItem:0, nySrc:false, nycJob:false, inPerson:false, commuteDays:3, timeValue:25};
 
 /* ================= STATE ================= */
-const LS = {data:"nycexit.data.v4", active:"nycexit.active.v4", inputs:"nycexit.inputs.v2"};
+const LS = {data:"nycexit.data.v4", active:"nycexit.active.v5", inputs:"nycexit.inputs.v2"};
 // helpers for cities saved before cars/transit existed
 const cityCars = c => (c.cars ?? (c.baseline ? 0 : 1));
 const cityTransit = c => (c.transit ?? (c.baseline ? 132 : 0));
