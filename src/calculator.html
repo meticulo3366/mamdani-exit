@@ -122,6 +122,29 @@
   button.btn.ghost{background:var(--chip);color:var(--ink);border:1px solid var(--line)}
   button.btn:hover{filter:brightness(1.07)}
 
+  /* tabs */
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tabbtn{padding:8px 18px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-weight:700;font-size:13px;cursor:pointer;color:var(--ink2);font-family:var(--sans)}
+  .tabbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .tabbtn:hover:not(.on){background:var(--chip)}
+
+  /* rent vs own */
+  .rvogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:11px}
+  .onetime{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;margin-top:6px}
+  .onetime .ot{background:var(--ground);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+  .onetime .ot .k{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2)}
+  .onetime .ot .v{font-family:var(--mono);font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+  .divchart{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+  .dcrow{display:grid;grid-template-columns:48px 1fr 116px;gap:10px;align-items:center;font-size:12px}
+  .dcrow .yr{color:var(--ink2);font-family:var(--mono);text-align:right}
+  .dcrow .val{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+  .dctrack{position:relative;height:14px;background:var(--chip);border-radius:4px;overflow:hidden}
+  .dctrack .zero{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--ink3)}
+  .dcbar{position:absolute;top:0;bottom:0}
+  .dcbar.pos{left:50%;background:var(--accent);border-radius:0 4px 4px 0}
+  .dcbar.neg{right:50%;background:var(--neg);border-radius:4px 0 0 4px}
+  .dcrow.be .yr{color:var(--accent);font-weight:800}
+
   details.block{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-top:18px}
   details.block>summary{cursor:pointer;padding:14px 18px;font-weight:700;font-size:14px;list-style:none;display:flex;justify-content:space-between;align-items:center}
   details.block>summary::after{content:"+";font-family:var(--mono);color:var(--ink2);font-size:16px}
@@ -248,6 +271,60 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
 
   <!-- ============ RESULTS ============ -->
   <div>
+    <div class="tabs" role="tablist">
+      <button class="tabbtn on" id="tab-exit" role="tab" aria-selected="true">Leave NYC</button>
+      <button class="tabbtn" id="tab-rvo" role="tab" aria-selected="false">Stay &amp; buy — rent vs. own</button>
+    </div>
+
+    <div id="view-rvo" hidden>
+      <div class="panel">
+        <h2>Buy in NYC — the deal</h2>
+        <p class="sectionnote">NYC-specific: mansion tax, mortgage recording tax (co-ops exempt), the co-op/condo abatement, and the real federal itemizing math against the SALT cap — computed with this calculator's bracket engine at your income.</p>
+        <div class="rvogrid">
+          <div><label class="lbl" for="rv-price">Purchase price ($)</label><input type="number" id="rv-price" min="0" step="25000"></div>
+          <div><label class="lbl" for="rv-type">Unit type</label>
+            <select id="rv-type"><option value="condo">Condo</option><option value="coop">Co-op</option><option value="house">House (1–3 fam)</option></select></div>
+          <div><label class="lbl" for="rv-down">Down payment (%)</label><input type="number" id="rv-down" min="0" max="100" step="5"></div>
+          <div><label class="lbl" for="rv-rate">Mortgage rate (%)</label><input type="number" id="rv-rate" min="0" max="15" step="0.125"></div>
+          <div><label class="lbl" for="rv-maint">Maint./common ($/mo)</label><input type="number" id="rv-maint" min="0" step="100"></div>
+          <div><label class="lbl" for="rv-ptax">Property tax ($/yr)</label><input type="number" id="rv-ptax" min="0" step="500"></div>
+          <div><label class="lbl" for="rv-abate">Abatement (%)</label><input type="number" id="rv-abate" min="0" max="30" step="0.1"></div>
+          <div><label class="lbl" for="rv-rent">Equivalent rent ($/mo)</label><input type="number" id="rv-rent" min="0" step="100"></div>
+          <div><label class="lbl" for="rv-rentgrow">Rent growth (%/yr)</label><input type="number" id="rv-rentgrow" min="-5" max="15" step="0.25"></div>
+          <div><label class="lbl" for="rv-appr">Home appreciation (%/yr)</label><input type="number" id="rv-appr" min="-5" max="15" step="0.25"></div>
+          <div><label class="lbl" for="rv-inv">Investment return (%/yr)</label><input type="number" id="rv-inv" min="-5" max="20" step="0.25"></div>
+          <div><label class="lbl" for="rv-horizon">Horizon (years)</label><input type="number" id="rv-horizon" min="1" max="30" step="1"></div>
+        </div>
+        <div class="hint" style="margin-top:10px" id="rv-hints"></div>
+      </div>
+
+      <div class="tiles" id="rv-tiles" style="margin-top:18px"></div>
+
+      <div class="panel">
+        <h2>One-time NYC costs of the purchase</h2>
+        <p class="sectionnote" id="rv-onetime-note"></p>
+        <div class="onetime" id="rv-onetime"></div>
+      </div>
+
+      <div class="panel" style="margin-top:18px">
+        <h2>Own minus rent — wealth difference if you sold in year N</h2>
+        <p class="sectionnote">Green = owning has you ahead (equity after selling costs &amp; taxes, vs the renter's portfolio from investing the down payment + monthly savings). The renter invests at your investment-return rate.</p>
+        <div class="divchart" id="rv-chart"></div>
+      </div>
+
+      <div class="panel ledger" style="margin-top:18px">
+        <h2>Year 1 — monthly cost of owning vs renting</h2>
+        <p class="sectionnote" id="rv-yr1note"></p>
+        <div class="tblwrap"><table id="rv-ledger"></table></div>
+      </div>
+
+      <details class="block">
+        <summary>Year-by-year detail</summary>
+        <div class="inner fulltable tblwrap"><table id="rv-table"></table></div>
+      </details>
+    </div>
+
+    <div id="view-exit">
     <div class="tiles" id="tiles"></div>
 
     <div class="panel">
@@ -266,6 +343,7 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
       <summary>All cities — full table</summary>
       <div class="inner fulltable tblwrap"><table id="fulltable"></table></div>
     </details>
+    </div><!-- /view-exit -->
 
     <details class="block">
       <summary>Tax data — every rate is pluggable</summary>
@@ -292,6 +370,7 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
           <li><b>Commute time value (in-person work):</b> annual commute hours = 2 × one-way minutes × office days/week × 48 weeks, priced at your $/hr and subtracted from discretionary income as an <i>imputed</i> cost. US DOT guidance values personal travel time near 50% of the wage rate (~$25/hr at $100k, ~$50/hr at $200k). A Beacon-to-NYC rail commute 3 days/week is ~400 hours a year — set your own rate honestly and the belt-town math changes a lot.</li>
           <li><b>PA local earned-income tax:</b> nearly every PA municipality levies one — modeled at a typical 1.1% for Lancaster/Allentown (editable), 3% for Pittsburgh, and Philadelphia's exact 3.74% wage tax. PA also taxes 401(k) employee deferrals, which this model doesn't.</li>
           <li><b>Cars:</b> each city has a car count (only NYC and a few transit-strong cities default below one per household) × your all-in per-car cost, plus a monthly transit-pass figure (NYC $132 unlimited MetroCard; editable per city in the JSON). Car insurance varies a lot by state — FL, NY, and LA metro run high, so adjust the per-car cost if insurance quotes differ materially.</li>
+          <li><b>Rent vs. own (NYC tab):</b> one-time costs use the NY mansion-tax schedule (1%–3.9% of the <i>full</i> price at each threshold), NYC mortgage recording tax (1.8%/1.925% less the 0.25% lender share; <b>co-ops exempt</b>), and typical other closing costs. Recurring: 30-yr amortization, maintenance/common charges growing ~3%/yr, property tax net of the co-op/condo abatement (17.5%–28.1% by assessed value, primary residence). Tax savings are computed by running your actual federal return both ways through the bracket engine — property tax joins state+city income tax under the SALT cap; mortgage interest deducts up to the $750k loan cap. Exit applies broker fee + NYC (1%/1.425%) and NYS (0.4%, +0.65% ≥$3M) transfer taxes and the §121 exclusion ($250k/$500k) before your capital-gains rate. Not modeled: PMI, refinancing, NY-state itemizing, flip taxes (co-op-specific — check the building), renter-portfolio taxes, buyer concessions. Rules pending final verification are marked in the tax-data JSON.</li>
           <li><b>Rents and cost indexes are placeholders</b> — the tax math is exact to the data; the living-cost side is only as good as what you plug in.</li>
           <li>Not tax advice. The NY bonus-sourcing rules and move-timing are genuinely worth a CPA — mistiming a large bonus around a move can cost more than any modeling error here.</li>
         </ul>
@@ -406,13 +485,25 @@ const DEFAULT_DATA = {
       cityTax:{type:"flat", rate:0.011, base:"stateTaxable", label:"PA local EIT (typical, editable)"}},
     newport:{name:"Newport", state:"RI", rent:2100, colIndex:0.88, commuteMin:40, cars:1, transit:0,
       region:"~0:40 to Providence · ~1:30 to Boston"}
+  },
+  nycOwn:{ /* NYC ownership rules — pending adversarial verification */
+    mansion:[[1000000,0.01],[2000000,0.0125],[3000000,0.015],[5000000,0.0225],[10000000,0.0325],[15000000,0.035],[20000000,0.0375],[25000000,0.039]],
+    recording:{threshold:500000, below:0.018, above:0.01925, lenderPays:0.0025, coopExempt:true},
+    rpttSell:{threshold:500000, low:0.01, high:0.01425, nys:0.004, nysSupp:0.0065, nysSuppMin:3000000},
+    abatementTiers:[[50000,28.1],[55000,25.2],[60000,22.5],[null,17.5]],
+    coopPtShare:0.5,
+    closeOtherPct:{condo:0.015, coop:0.008, house:0.015},
+    maintGrowth:0.03
   }
 };
 const DEFAULT_ACTIVE = ["nyc","miami","austin","nashville","vegas","seattle","la","boston","chicago","denver","atlanta","providence","lancaster","pittsburgh","beacon","princeton","newhaven"];
 const DEFAULT_INPUTS = {gross:100000, bonusPct:40, status:"single", k401:0, spend:3000, carCost:750, propTax:0, otherItem:0, nySrc:false, nycJob:false, inPerson:false, commuteDays:3, timeValue:25};
 
+const DEFAULT_RVO = {price:800000, type:"condo", downPct:20, rate:6.0, maintMo:1200, ptaxAnnual:7200, abatePct:17.5,
+  rentMo:3800, rentGrowPct:3, apprPct:3, invPct:7, horizonYrs:10, sellBrokerPct:5, capGainPct:30};
+
 /* ================= STATE ================= */
-const LS = {data:"nycexit.data.v4", active:"nycexit.active.v5", inputs:"nycexit.inputs.v2"};
+const LS = {data:"nycexit.data.v4", active:"nycexit.active.v5", inputs:"nycexit.inputs.v2", rvo:"nycexit.rvo.v1", tab:"nycexit.tab.v1"};
 // helpers for cities saved before cars/transit existed
 const cityCars = c => (c.cars ?? (c.baseline ? 0 : 1));
 const cityTransit = c => (c.transit ?? (c.baseline ? 132 : 0));
@@ -420,8 +511,10 @@ function loadLS(key, fallback){ try{ const v=localStorage.getItem(key); return v
 let DATA   = loadLS(LS.data, DEFAULT_DATA);
 let ACTIVE = loadLS(LS.active, DEFAULT_ACTIVE).filter(id=>true);
 let INPUTS = Object.assign(structuredClone(DEFAULT_INPUTS), loadLS(LS.inputs, {}));
+let RVO = Object.assign(structuredClone(DEFAULT_RVO), loadLS(LS.rvo, {}));
+let TAB = loadLS(LS.tab, "exit");
 let SELECTED = null;
-function save(){ try{ localStorage.setItem(LS.data, JSON.stringify(DATA)); localStorage.setItem(LS.active, JSON.stringify(ACTIVE)); localStorage.setItem(LS.inputs, JSON.stringify(INPUTS)); }catch(e){} }
+function save(){ try{ localStorage.setItem(LS.data, JSON.stringify(DATA)); localStorage.setItem(LS.active, JSON.stringify(ACTIVE)); localStorage.setItem(LS.inputs, JSON.stringify(INPUTS)); localStorage.setItem(LS.rvo, JSON.stringify(RVO)); localStorage.setItem(LS.tab, JSON.stringify(TAB)); }catch(e){} }
 
 /* ================= TAX ENGINE ================= */
 function progTax(brackets, t){
@@ -530,6 +623,94 @@ function calcCity(cityId){
     stateLocal: sres.tax + payroll + cityTaxAmt + nyExtra + nyCommute, baseline: !!city.baseline};
 }
 
+/* ================= RENT VS OWN (NYC) ENGINE ================= */
+function nycOwnCfg(){ return DATA.nycOwn || DEFAULT_DATA.nycOwn; }
+function mansionTax(P, cfg){ // applies to FULL price once over each threshold (not marginal)
+  let rate = 0;
+  for(const [min, r] of cfg.mansion) if(P >= min) rate = r;
+  return P * rate;
+}
+function recordingTax(loan, type, cfg){ // co-ops exempt: share loans aren't real-property mortgages
+  if(type === "coop" || loan <= 0) return 0;
+  const rc = cfg.recording;
+  const r = loan < rc.threshold ? rc.below : rc.above;
+  return loan * Math.max(0, r - (rc.lenderPays || 0));
+}
+function rpttSell(value, cfg){ // seller-side transfer taxes, charged at exit
+  const t = cfg.rpttSell;
+  let tax = value * (value <= t.threshold ? t.low : t.high) + value * t.nys;
+  if(value >= t.nysSuppMin) tax += value * t.nysSupp;
+  return tax;
+}
+function amortYears(loan, annualRate, years){
+  const mr = annualRate / 12, n = years * 12;
+  const pay = mr > 0 ? loan * mr / (1 - Math.pow(1 + mr, -n)) : loan / n;
+  const out = []; let bal = loan;
+  for(let y = 0; y < years; y++){
+    let I = 0, Pr = 0;
+    for(let m = 0; m < 12; m++){ const i = bal * mr; const p = Math.min(pay - i, bal); I += i; Pr += p; bal -= p; }
+    out.push({interest: I, principal: Pr, balance: bal});
+  }
+  return out;
+}
+function calcRvo(){
+  const cfg = nycOwnCfg(), v = RVO, status = INPUTS.status;
+  const P = Math.max(0, v.price);
+  const loan0 = P * (1 - Math.min(100, Math.max(0, v.downPct)) / 100);
+  const down = P - loan0;
+  // one-time buy costs
+  const mansion = mansionTax(P, cfg);
+  const recording = recordingTax(loan0, v.type, cfg);
+  const otherClose = P * (cfg.closeOtherPct[v.type] ?? 0.015);
+  const buyCosts = mansion + recording + otherClose;
+  const initialOutlay = down + buyCosts;
+  // NYC income-tax context at the user's income (drives SALT + itemizing, via the real bracket engine)
+  const wages = Math.max(0, INPUTS.gross - INPUTS.k401);
+  const sres = stateTax(DATA.states.NY, wages, status);
+  const cityT = progTax(DATA.cities.nyc.cityTax.brackets[status], sres.taxable);
+  const sc = DATA.federal.salt;
+  const saltCap = Math.min(sc.cap, Math.max(sc.floor, sc.cap - sc.phaseoutRate * Math.max(0, wages - sc.phaseoutStart)));
+  const std = DATA.federal.stdDed[status];
+  const fedAt = ded => progTax(DATA.federal.brackets[status], Math.max(0, wages - ded));
+  const renterDed = Math.max(std, Math.min(sres.tax + cityT, saltCap) + (INPUTS.otherItem || 0));
+  const renterFed = fedAt(renterDed);
+  // recurring
+  const abate = Math.min(1, Math.max(0, (v.abatePct || 0) / 100));
+  const amort = amortYears(loan0, v.rate / 100, 30);
+  const intCapRatio = Math.min(1, 750000 / Math.max(1, loan0));
+  const growth = 1 + v.apprPct / 100, rentG = 1 + v.rentGrowPct / 100,
+        maintG = 1 + (cfg.maintGrowth ?? 0.03), invG = 1 + v.invPct / 100;
+  let rentAnnual = v.rentMo * 12, maintAnnual = v.maintMo * 12;
+  let ptaxAnnual = v.type === "coop" ? maintAnnual * (cfg.coopPtShare ?? 0.5) : (v.ptaxAnnual || 0);
+  let portfolio = initialOutlay;
+  const years = []; let breakEven = null;
+  const excl = status === "mfj" ? 500000 : 250000;
+  for(let n = 1; n <= Math.max(1, Math.round(v.horizonYrs)); n++){
+    const a = amort[n - 1] || {interest: 0, principal: 0, balance: 0};
+    const value = P * Math.pow(growth, n);
+    const ptaxNet = ptaxAnnual * (1 - abate);
+    // co-op: property tax lives inside maintenance; the abatement arrives as a credit against maintenance
+    const carry = v.type === "coop" ? maintAnnual - ptaxAnnual * abate : maintAnnual + ptaxNet;
+    const outflowPreTax = a.interest + a.principal + carry;
+    const ownDed = Math.max(std, Math.min(sres.tax + cityT + ptaxNet, saltCap) + a.interest * intCapRatio + (INPUTS.otherItem || 0));
+    const taxBenefit = Math.max(0, renterFed - fedAt(ownDed));
+    const outflow = outflowPreTax - taxBenefit;
+    portfolio = portfolio * invG + (outflow - rentAnnual);
+    const sellCosts = value * (v.sellBrokerPct || 0) / 100 + rpttSell(value, cfg);
+    const gain = Math.max(0, value - sellCosts - (P + buyCosts));
+    const capTax = Math.max(0, gain - excl) * (v.capGainPct || 0) / 100;
+    const ownerNW = value - a.balance - sellCosts - capTax;
+    const delta = ownerNW - portfolio;
+    if(breakEven === null && delta >= 0) breakEven = n;
+    years.push({n, value, interest: a.interest, principal: a.principal, balance: a.balance, carry,
+      ptaxNet, taxBenefit, outflowPreTax, outflow, rentAnnual, portfolio, ownerNW, sellCosts, capTax, delta});
+    rentAnnual *= rentG; maintAnnual *= maintG;
+    ptaxAnnual = v.type === "coop" ? maintAnnual * (cfg.coopPtShare ?? 0.5) : ptaxAnnual * maintG;
+  }
+  return {P, loan0, down, mansion, recording, otherClose, buyCosts, initialOutlay,
+    renterFed, saltCap, std, years, breakEven, abate, intCapRatio};
+}
+
 /* ================= FORMATTING ================= */
 const fmtC = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
 const $ = v => fmtC.format(Math.round(v));
@@ -550,9 +731,77 @@ function render(){
     SELECTED = top ? top.id : (res[0] ? res[0].id : null);
   }
   renderTiles(res, base); renderChart(res, base); renderLedger(res, base); renderFullTable(res, base); renderCityList(); renderAddSel();
+  renderRvo(); applyTab();
   const ta = document.getElementById("datajson");
   if(document.activeElement !== ta) ta.value = JSON.stringify(DATA, null, 2);
   save();
+}
+function applyTab(){
+  document.getElementById("view-exit").hidden = TAB !== "exit";
+  document.getElementById("view-rvo").hidden = TAB !== "rvo";
+  document.getElementById("tab-exit").classList.toggle("on", TAB === "exit");
+  document.getElementById("tab-rvo").classList.toggle("on", TAB === "rvo");
+  document.getElementById("tab-exit").setAttribute("aria-selected", TAB === "exit");
+  document.getElementById("tab-rvo").setAttribute("aria-selected", TAB === "rvo");
+}
+function renderRvo(){
+  const r = calcRvo(), v = RVO;
+  const y1 = r.years[0], yH = r.years[r.years.length - 1];
+  const mo = x => $(x / 12);
+  // tiles
+  const ownMoAfterTax = y1.outflow / 12, rentMo1 = y1.rentAnnual / 12;
+  const trueCost = (y1.outflow - y1.principal) / 12; // outflow net of equity build
+  document.getElementById("rv-tiles").innerHTML = `
+    <div class="tile"><div class="k">After-tax monthly cost, year 1</div>
+      <div class="v">${$(ownMoAfterTax)} <span style="font-size:14px;color:var(--ink2)">own</span></div>
+      <div class="d">vs ${$(rentMo1)} rent · true cost ${$(trueCost)}/mo net of principal</div></div>
+    <div class="tile"><div class="k">Break-even year</div>
+      <div class="v">${r.breakEven ? "Year " + r.breakEven : "&gt; " + v.horizonYrs + " yrs"}</div>
+      <div class="d">first year owning beats renting if you sold then</div></div>
+    <div class="tile"><div class="k">At year ${yH.n}</div>
+      <div class="v"><span class="${yH.delta >= 0 ? "pos" : "neg"}">${sgn(yH.delta)}</span></div>
+      <div class="d">owner net worth vs renter portfolio</div></div>`;
+  // one-time costs
+  document.getElementById("rv-onetime-note").innerHTML =
+    `On a ${$(r.P)} ${v.type === "coop" ? "co-op" : v.type} with ${v.downPct}% down (${$(r.loan0)} mortgage):`;
+  document.getElementById("rv-onetime").innerHTML = `
+    <div class="ot"><div class="k">Mansion tax</div><div class="v">${$(r.mansion)}</div></div>
+    <div class="ot"><div class="k">Mortgage recording tax</div><div class="v">${v.type === "coop" ? "$0 — co-op exempt" : $(r.recording)}</div></div>
+    <div class="ot"><div class="k">Other closing (title, legal)</div><div class="v">${$(r.otherClose)}</div></div>
+    <div class="ot"><div class="k">Total buy costs</div><div class="v">${$(r.buyCosts)} <span style="font-weight:400;font-size:11px;color:var(--ink2)">(${(r.buyCosts / Math.max(1, r.P) * 100).toFixed(1)}%)</span></div></div>
+    <div class="ot"><div class="k">Cash to close (w/ down)</div><div class="v">${$(r.initialOutlay)}</div></div>`;
+  // diverging chart
+  const maxAbs = Math.max(1, ...r.years.map(y => Math.abs(y.delta)));
+  document.getElementById("rv-chart").innerHTML = r.years.map(y => {
+    const w = Math.abs(y.delta) / maxAbs * 50;
+    return `<div class="dcrow${y.n === r.breakEven ? " be" : ""}">
+      <div class="yr">yr ${y.n}</div>
+      <div class="dctrack"><div class="zero"></div><div class="dcbar ${y.delta >= 0 ? "pos" : "neg"}" style="width:${w}%"></div></div>
+      <div class="val">${sgn(y.delta)}</div></div>`;
+  }).join("");
+  // year-1 ledger
+  document.getElementById("rv-yr1note").innerHTML =
+    `Tax savings computed with the real 2026 bracket engine at your income (${$(INPUTS.gross)}, ${INPUTS.status === "mfj" ? "married" : "single"}): owning adds ${v.type === "coop" ? "your co-op's property-tax share" : "property tax"} to SALT (cap ${$(r.saltCap)}) plus deductible mortgage interest${r.intCapRatio < 1 ? ` (capped at the $750k loan limit — ${(r.intCapRatio * 100).toFixed(0)}% of interest counts)` : ""}.`;
+  const led = [];
+  led.push(`<tr><th>Monthly, year 1</th><th>Own</th><th>Rent</th></tr>`);
+  led.push(`<tr><td>Mortgage payment (P&amp;I)</td><td>${mo(y1.interest + y1.principal)}</td><td>—</td></tr>`);
+  led.push(`<tr><td>${v.type === "coop" ? `Maintenance (abatement credit −${(v.abatePct).toFixed(1)}% of tax share)` : "Common charges / maintenance"}</td><td>${mo(y1.carry - (v.type === "coop" ? 0 : y1.ptaxNet))}</td><td>—</td></tr>`);
+  if(v.type !== "coop") led.push(`<tr><td>Property tax (net of ${(v.abatePct).toFixed(1)}% abatement)</td><td>${mo(y1.ptaxNet)}</td><td>—</td></tr>`);
+  led.push(`<tr><td>Rent</td><td>—</td><td>${mo(y1.rentAnnual)}</td></tr>`);
+  led.push(`<tr><td>Cash outflow</td><td>${mo(y1.outflowPreTax)}</td><td>${mo(y1.rentAnnual)}</td></tr>`);
+  led.push(`<tr><td>Federal tax savings from owning</td><td class="pos">−${mo(y1.taxBenefit)}</td><td>—</td></tr>`);
+  led.push(`<tr><td>Principal (builds your equity)</td><td class="pos">−${mo(y1.principal)}</td><td>—</td></tr>`);
+  led.push(`<tr class="tot"><td>True monthly cost</td><td>${mo(y1.outflow - y1.principal)}</td><td>${mo(y1.rentAnnual)}</td></tr>`);
+  document.getElementById("rv-ledger").innerHTML = led.join("");
+  // year table
+  const rows = [`<tr><th>Yr</th><th>Home value</th><th>Interest</th><th>Principal</th><th>Carry</th><th>Tax benefit</th><th>Own outflow</th><th>Rent</th><th>Renter portfolio</th><th>Owner net (if sold)</th><th>Own − rent</th></tr>`];
+  for(const y of r.years){
+    rows.push(`<tr><td>${y.n}</td><td>${$(y.value)}</td><td>${$(y.interest)}</td><td>${$(y.principal)}</td><td>${$(y.carry)}</td><td>${$(y.taxBenefit)}</td><td>${$(y.outflow)}</td><td>${$(y.rentAnnual)}</td><td>${$(y.portfolio)}</td><td>${$(y.ownerNW)}</td><td style="color:var(--${y.delta >= 0 ? "pos" : "neg"})">${sgn(y.delta)}</td></tr>`);
+  }
+  document.getElementById("rv-table").innerHTML = rows.join("");
+  // hints
+  document.getElementById("rv-hints").innerHTML =
+    `Suggested property tax for a ${$(r.P)} condo: ~${$(r.P * 0.009)}/yr (NYC condos run ~0.8–1.1% of value; check the actual listing). Abatement tiers by avg assessed value/unit: 28.1% ≤$50k → 17.5% &gt;$60k; primary residence only. Co-op: property tax lives inside maintenance (share assumed ${((nycOwnCfg().coopPtShare ?? 0.5) * 100).toFixed(0)}%, editable in the tax-data JSON); co-ops pay <b>no mortgage recording tax</b>. Sell-side assumptions: ${v.sellBrokerPct}% broker + NYC/NYS transfer taxes; capital gains over the ${INPUTS.status === "mfj" ? "$500k" : "$250k"} exclusion taxed at ${v.capGainPct}%. Homeowners insurance: fold ~$100–150/mo into maintenance.`;
 }
 function renderTiles(res, base){
   const el = document.getElementById("tiles");
@@ -704,6 +953,17 @@ document.getElementById("in-nycjob").addEventListener("change", e=>{ INPUTS.nycJ
 bindInput("in-commutedays","commuteDays"); bindInput("in-timevalue","timeValue");
 document.getElementById("in-inperson").checked = INPUTS.inPerson;
 document.getElementById("in-inperson").addEventListener("change", e=>{ INPUTS.inPerson=e.target.checked; render(); });
+
+document.getElementById("tab-exit").addEventListener("click", ()=>{ TAB="exit"; applyTab(); save(); });
+document.getElementById("tab-rvo").addEventListener("click", ()=>{ TAB="rvo"; applyTab(); save(); });
+function bindRvo(id, key, isSel){
+  const el = document.getElementById(id);
+  el.value = RVO[key];
+  el.addEventListener("change", ()=>{ RVO[key] = isSel ? el.value : +el.value||0; render(); });
+}
+bindRvo("rv-price","price"); bindRvo("rv-type","type",true); bindRvo("rv-down","downPct"); bindRvo("rv-rate","rate");
+bindRvo("rv-maint","maintMo"); bindRvo("rv-ptax","ptaxAnnual"); bindRvo("rv-abate","abatePct"); bindRvo("rv-rent","rentMo");
+bindRvo("rv-rentgrow","rentGrowPct"); bindRvo("rv-appr","apprPct"); bindRvo("rv-inv","invPct"); bindRvo("rv-horizon","horizonYrs");
 
 document.getElementById("addbtn").addEventListener("click", ()=>{
   const v = document.getElementById("addsel").value;

@@ -113,6 +113,49 @@ approx("Lancaster PA state", calcCity("lancaster").state, 3070);
 approx("Lancaster local EIT", calcCity("lancaster").cityTax, 1100);
 approx("Pittsburgh EIT", calcCity("pittsburgh").cityTax, 3000);
 approx("Newport RI state", calcCity("newport").state, 3428.38);
+
+// ---- Rent vs Own (NYC) ----
+const cfg = DEFAULT_DATA.nycOwn;
+// mansion tax: full-price cliff, not marginal
+approx("mansion below 1M", mansionTax(999999, cfg), 0);
+approx("mansion at 1M", mansionTax(1000000, cfg), 10000);
+approx("mansion 2.5M @1.25%", mansionTax(2500000, cfg), 31250);
+// recording tax: co-op exempt; 400k < 500k → (1.8%−0.25%); 640k → (1.925%−0.25%)
+approx("recording co-op exempt", recordingTax(640000, "coop", cfg), 0);
+approx("recording 400k", recordingTax(400000, "condo", cfg), 6200);
+approx("recording 640k", recordingTax(640000, "condo", cfg), 10720);
+// seller transfer taxes
+approx("RPTT 1.2M", rpttSell(1200000, cfg), 21900);
+approx("RPTT 3.5M w/ supplemental", rpttSell(3500000, cfg), 86625);
+// amortization: 640k @6% 30yr → payment $3,837.13/mo; balance ≈ $632,138 after yr 1
+const am = amortYears(640000, 0.06, 30);
+approx("amort yr1 P+I", am[0].interest + am[0].principal, 3837.13 * 12, 3);
+approx("amort yr1 balance", am[0].balance, 632138, 30);
+// full scenario: 800k condo, 20% down, 6%, ptax 7200, abate 17.5%, income 200k single
+INPUTS = { gross: 200000, bonusPct: 40, status: "single", k401: 0, spend: 3000, carCost: 750, propTax: 0, otherItem: 0,
+  nySrc: false, nycJob: false, inPerson: false, commuteDays: 3, timeValue: 25 };
+RVO = { price: 800000, type: "condo", downPct: 20, rate: 6.0, maintMo: 1200, ptaxAnnual: 7200, abatePct: 17.5,
+  rentMo: 3800, rentGrowPct: 3, apprPct: 3, invPct: 7, horizonYrs: 10, sellBrokerPct: 5, capGainPct: 30 };
+const rv = calcRvo();
+approx("rvo buy costs (recording+other)", rv.buyCosts, 10720 + 12000);
+approx("rvo cash to close", rv.initialOutlay, 160000 + 22720);
+const y1 = rv.years[0];
+// benefit ≈ 24% × (net property tax 5,940 + year-1 interest), all inside the 24% bracket
+approx("rvo yr1 tax benefit", y1.taxBenefit, 0.24 * (5940 + y1.interest), 3);
+// carry = maint 14,400 + net ptax 5,940
+approx("rvo yr1 carry", y1.carry, 20340);
+// renter portfolio recurrence: 182,720×1.07 + (outflow − 45,600)
+approx("rvo yr1 portfolio", y1.portfolio, 182720 * 1.07 + (y1.outflow - 45600), 1);
+// owner net worth if sold end of yr 1: value 824k − balance − (5% broker + RPTT) − 0 cap gains
+const sc1 = 824000 * 0.05 + rpttSell(824000, cfg);
+approx("rvo yr1 owner NW", y1.ownerNW, 824000 - y1.balance - sc1, 1);
+if (y1.delta >= 0) { fails++; console.log("FAIL  year-1 NYC buy should trail renting"); } else console.log("PASS  year-1 owner trails renter (as expected)");
+// co-op: no recording tax, abatement as maintenance credit
+RVO = Object.assign({}, RVO, { type: "coop", maintMo: 2400, ptaxAnnual: 0 });
+const rvC = calcRvo();
+approx("rvo co-op no recording", rvC.recording, 0);
+// co-op carry yr1 = 28,800 − (28,800×50% share × 17.5%) = 28,800 − 2,520 = 26,280
+approx("rvo co-op yr1 carry w/ abatement credit", rvC.years[0].carry, 26280);
 }
 
 // Run assertions inside the engine's eval scope so its strict-mode declarations are visible.
