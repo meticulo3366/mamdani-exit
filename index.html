@@ -226,7 +226,7 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
           <input type="number" id="in-otheritem" min="0" step="500">
         </div>
       </div>
-      <div class="hint" style="margin-top:-6px">Used for federal itemizing. SALT cap $40,400 (phases to $10,100 above $505k AGI). The calculator auto-picks standard vs itemized per city.</div>
+      <div class="hint" style="margin-top:-6px">Used for federal itemizing. SALT cap $40,400 (phases down to $10,000 above $505k AGI). The calculator auto-picks standard vs itemized per city.</div>
       <label class="toggle">
         <input type="checkbox" id="in-nysrc">
         <span><b>First year: bonus still NY-sourced</b>
@@ -378,12 +378,12 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
           <li><b>Commute time value (in-person work):</b> annual commute hours = 2 × one-way minutes × office days/week × 48 weeks, priced at your $/hr and subtracted from discretionary income as an <i>imputed</i> cost. US DOT guidance values personal travel time near 50% of the wage rate (~$25/hr at $100k, ~$50/hr at $200k). A Beacon-to-NYC rail commute 3 days/week is ~400 hours a year — set your own rate honestly and the belt-town math changes a lot.</li>
           <li><b>PA local earned-income tax:</b> nearly every PA municipality levies one — modeled at a typical 1.1% for Lancaster/Allentown (editable), 3% for Pittsburgh, and Philadelphia's exact 3.74% wage tax. PA also taxes 401(k) employee deferrals, which this model doesn't.</li>
           <li><b>Cars:</b> each city has a car count (only NYC and a few transit-strong cities default below one per household) × your all-in per-car cost, plus a monthly transit-pass figure (NYC $132 unlimited MetroCard; editable per city in the JSON). Car insurance varies a lot by state — FL, NY, and LA metro run high, so adjust the per-car cost if insurance quotes differ materially.</li>
-          <li><b>Rent vs. own (NYC tab):</b> one-time costs use the NY mansion-tax schedule (1%–3.9% of the <i>full</i> price at each threshold), NYC mortgage recording tax (1.8%/1.925% less the 0.25% lender share; <b>co-ops exempt</b>), and typical other closing costs. Recurring: 30-yr amortization, maintenance/common charges growing ~3%/yr, property tax net of the co-op/condo abatement (17.5%–28.1% by assessed value, primary residence). Tax savings are computed by running your actual federal return both ways through the bracket engine — property tax joins state+city income tax under the SALT cap; mortgage interest deducts up to the $750k loan cap. Exit applies broker fee + NYC (1%/1.425%) and NYS (0.4%, +0.65% ≥$3M) transfer taxes and the §121 exclusion ($250k/$500k) before your capital-gains rate. Not modeled: PMI, refinancing, NY-state itemizing, flip taxes (co-op-specific — check the building), renter-portfolio taxes, buyer concessions. Rules pending final verification are marked in the tax-data JSON.</li>
+          <li><b>Rent vs. own (NYC tab):</b> one-time costs use the NY mansion-tax schedule (1%–3.9% of the <i>full</i> price at each threshold), NYC mortgage recording tax — buyer pays 1.8% under $500k / 1.925% at $500k+ (the statutory 2.05%/2.175% totals include a 0.25% share the lender pays; <b>co-ops exempt</b>) — and typical other closing costs. Recurring: 30-yr amortization, maintenance/common charges growing ~3%/yr, property tax net of the co-op/condo abatement (17.5%–28.1% by assessed value; primary residence; larger/high-value buildings must file the prevailing-wage affidavit). Tax savings are computed by running your actual federal return both ways through the bracket engine — property tax joins state+city income tax under the SALT cap; mortgage interest deducts by the Pub 936 ratio ($750k ÷ each year's average balance, so the deductible share rises as you amortize). Exit applies broker fee + NYC RPTT (1%/1.425%) and NYS transfer tax (0.4%, rising to 0.65% total on residential ≥$3M), then the §121 exclusion ($250k/$500k, only after 2 years of ownership &amp; use) before your capital-gains rate; recording tax is treated as a loan cost, not basis. Not modeled: PMI, refinancing, NY-state itemizing, flip taxes (co-op-specific — check the building), renter-portfolio taxes, buyer concessions. Every constant was adversarially verified against primary sources (tax.ny.gov, nyc.gov/311, IRS) in Aug 2026 and lives in the editable tax-data JSON.</li>
           <li><b>Rents and cost indexes are placeholders</b> — the tax math is exact to the data; the living-cost side is only as good as what you plug in.</li>
           <li>Not tax advice. The NY bonus-sourcing rules and move-timing are genuinely worth a CPA — mistiming a large bonus around a move can cost more than any modeling error here.</li>
         </ul>
         <div class="srcs" id="sources">
-          Sources: IRS Rev. Proc. 2025-32 (2026 inflation adjustments) · Tax Foundation 2026 federal &amp; state brackets · SSA 2026 wage base · NY DTF / NYC Finance published rates · RI Division of Taxation ADV 2025-22 (2026 uniform schedule). Verified 2026-07-16; RI added 2026-07-20.
+          Sources: IRS Rev. Proc. 2025-32 (2026 inflation adjustments) · Tax Foundation 2026 federal &amp; state brackets · SSA 2026 wage base · NY DTF / NYC Finance published rates · RI Division of Taxation ADV 2025-22 (2026 uniform schedule) · NY DTF mortgage-recording &amp; transfer-tax pages · NYC 311 co-op/condo abatement · IRS Pub 936/551, IRC §121 &amp; §216 · NYC Rent Guidelines Board Orders #56–58. Income-tax rates verified 2026-07-16; RI added 2026-07-20; ownership rules verified 2026-08-09.
         </div>
       </div>
     </details>
@@ -403,7 +403,7 @@ const DEFAULT_DATA = {
       single:[[12400,0.10],[50400,0.12],[105700,0.22],[201775,0.24],[256225,0.32],[640600,0.35],[null,0.37]],
       mfj:[[24800,0.10],[100800,0.12],[211400,0.22],[403550,0.24],[512450,0.32],[768700,0.35],[null,0.37]]
     },
-    salt:{cap:40400, floor:10100, phaseoutStart:505000, phaseoutRate:0.30}
+    salt:{cap:40400, floor:10000, phaseoutStart:505000, phaseoutRate:0.30}
   },
   fica:{ssRate:0.062, ssWageBase:184500, medicareRate:0.0145, addlMedicareRate:0.009, addlThreshold:{single:200000, mfj:250000}},
   states:{
@@ -494,10 +494,12 @@ const DEFAULT_DATA = {
     newport:{name:"Newport", state:"RI", rent:2100, colIndex:0.88, commuteMin:40, cars:1, transit:0,
       region:"~0:40 to Providence · ~1:30 to Boston"}
   },
-  nycOwn:{ /* NYC ownership rules — pending adversarial verification */
+  nycOwn:{ /* NYC ownership rules — adversarially verified vs primary sources 2026-08 */
     mansion:[[1000000,0.01],[2000000,0.0125],[3000000,0.015],[5000000,0.0225],[10000000,0.0325],[15000000,0.035],[20000000,0.0375],[25000000,0.039]],
-    recording:{threshold:500000, below:0.018, above:0.01925, lenderPays:0.0025, coopExempt:true},
-    rpttSell:{threshold:500000, low:0.01, high:0.01425, nys:0.004, nysSupp:0.0065, nysSuppMin:3000000},
+    recording:{threshold:500000, below:0.018, above:0.01925, coopExempt:true,
+      note:"buyer's share (statutory totals 2.05%/2.175% include 0.25% the lender pays)"},
+    rpttSell:{threshold:500000, low:0.01, high:0.01425, nys:0.004, nysSupp:0.0025, nysSuppMin:3000000,
+      note:"nysSupp raises total NYS to 0.65% on residential $3M+"},
     abatementTiers:[[50000,28.1],[55000,25.2],[60000,22.5],[null,17.5]],
     coopPtShare:0.5,
     closeOtherPct:{condo:0.015, coop:0.008, house:0.015},
@@ -640,9 +642,8 @@ function mansionTax(P, cfg){ // applies to FULL price once over each threshold (
 }
 function recordingTax(loan, type, cfg){ // co-ops exempt: share loans aren't real-property mortgages
   if(type === "coop" || loan <= 0) return 0;
-  const rc = cfg.recording;
-  const r = loan < rc.threshold ? rc.below : rc.above;
-  return loan * Math.max(0, r - (rc.lenderPays || 0));
+  const rc = cfg.recording; // rates are the buyer's share; the lender's 0.25% is on top and not the buyer's cost
+  return loan * (loan < rc.threshold ? rc.below : rc.above);
 }
 function rpttSell(value, cfg){ // seller-side transfer taxes, charged at exit
   const t = cfg.rpttSell;
@@ -685,7 +686,6 @@ function calcRvo(){
   // recurring
   const abate = Math.min(1, Math.max(0, (v.abatePct || 0) / 100));
   const amort = amortYears(loan0, v.rate / 100, 30);
-  const intCapRatio = Math.min(1, 750000 / Math.max(1, loan0));
   const growth = 1 + v.apprPct / 100, rentG = 1 + v.rentGrowPct / 100,
         maintG = 1 + (cfg.maintGrowth ?? 0.03), invG = 1 + v.invPct / 100;
   let rentAnnual = v.rentMo * 12, maintAnnual = v.maintMo * 12;
@@ -693,6 +693,7 @@ function calcRvo(){
   let portfolio = initialOutlay;
   const years = []; let breakEven = null;
   const excl = status === "mfj" ? 500000 : 250000;
+  const basisCosts = mansion + otherClose; // recording tax is a loan cost, not basis (Pub 551)
   for(let n = 1; n <= Math.max(1, Math.round(v.horizonYrs)); n++){
     const a = amort[n - 1] || {interest: 0, principal: 0, balance: 0};
     const value = P * Math.pow(growth, n);
@@ -700,23 +701,27 @@ function calcRvo(){
     // co-op: property tax lives inside maintenance; the abatement arrives as a credit against maintenance
     const carry = v.type === "coop" ? maintAnnual - ptaxAnnual * abate : maintAnnual + ptaxNet;
     const outflowPreTax = a.interest + a.principal + carry;
-    const ownDed = Math.max(std, Math.min(sres.tax + cityT + ptaxNet, saltCap) + a.interest * intCapRatio + (INPUTS.otherItem || 0));
+    // Pub 936: deductible share = $750k / this year's AVERAGE balance (rises toward 1 as the loan amortizes)
+    const balStart = n === 1 ? loan0 : (amort[n - 2] ? amort[n - 2].balance : loan0);
+    const intRatio = Math.min(1, 750000 / Math.max(1, (balStart + a.balance) / 2));
+    const ownDed = Math.max(std, Math.min(sres.tax + cityT + ptaxNet, saltCap) + a.interest * intRatio + (INPUTS.otherItem || 0));
     const taxBenefit = Math.max(0, renterFed - fedAt(ownDed));
     const outflow = outflowPreTax - taxBenefit;
     portfolio = portfolio * invG + (outflow - rentAnnual);
     const sellCosts = value * (v.sellBrokerPct || 0) / 100 + rpttSell(value, cfg);
-    const gain = Math.max(0, value - sellCosts - (P + buyCosts));
-    const capTax = Math.max(0, gain - excl) * (v.capGainPct || 0) / 100;
+    const gain = Math.max(0, value - sellCosts - (P + basisCosts));
+    const exclAvail = n >= 2 ? excl : 0; // §121 needs 2 years of ownership + use
+    const capTax = Math.max(0, gain - exclAvail) * (v.capGainPct || 0) / 100;
     const ownerNW = value - a.balance - sellCosts - capTax;
     const delta = ownerNW - portfolio;
     if(breakEven === null && delta >= 0) breakEven = n;
     years.push({n, value, interest: a.interest, principal: a.principal, balance: a.balance, carry,
-      ptaxNet, taxBenefit, outflowPreTax, outflow, rentAnnual, portfolio, ownerNW, sellCosts, capTax, delta});
+      ptaxNet, taxBenefit, outflowPreTax, outflow, rentAnnual, portfolio, ownerNW, sellCosts, capTax, delta, intRatio});
     rentAnnual *= rentG; maintAnnual *= maintG;
     ptaxAnnual = v.type === "coop" ? maintAnnual * (cfg.coopPtShare ?? 0.5) : ptaxAnnual * maintG;
   }
   return {P, loan0, down, mansion, recording, otherClose, buyCosts, initialOutlay,
-    renterFed, saltCap, std, years, breakEven, abate, intCapRatio};
+    renterFed, saltCap, std, years, breakEven, abate};
 }
 
 /* ================= FORMATTING ================= */
@@ -789,7 +794,7 @@ function renderRvo(){
   }).join("");
   // year-1 ledger
   document.getElementById("rv-yr1note").innerHTML =
-    `Tax savings computed with the real 2026 bracket engine at your income (${$(INPUTS.gross)}, ${INPUTS.status === "mfj" ? "married" : "single"}): owning adds ${v.type === "coop" ? "your co-op's property-tax share" : "property tax"} to SALT (cap ${$(r.saltCap)}) plus deductible mortgage interest${r.intCapRatio < 1 ? ` (capped at the $750k loan limit — ${(r.intCapRatio * 100).toFixed(0)}% of interest counts)` : ""}.`;
+    `Tax savings computed with the real 2026 bracket engine at your income (${$(INPUTS.gross)}, ${INPUTS.status === "mfj" ? "married" : "single"}): owning adds ${v.type === "coop" ? "your co-op's property-tax share" : "property tax"} to SALT (cap ${$(r.saltCap)}) plus deductible mortgage interest${r.years[0].intRatio < 1 ? ` (capped at the $750k loan limit — ${(r.years[0].intRatio * 100).toFixed(0)}% of year-1 interest counts, rising as the loan amortizes)` : ""}.`;
   const led = [];
   led.push(`<tr><th>Monthly, year 1</th><th>Own</th><th>Rent</th></tr>`);
   led.push(`<tr><td>Mortgage payment (P&amp;I)</td><td>${mo(y1.interest + y1.principal)}</td><td>—</td></tr>`);
@@ -809,7 +814,7 @@ function renderRvo(){
   document.getElementById("rv-table").innerHTML = rows.join("");
   // hints
   document.getElementById("rv-hints").innerHTML =
-    `Suggested property tax for a ${$(r.P)} condo: ~${$(r.P * 0.009)}/yr (NYC condos run ~0.8–1.1% of value; check the actual listing). Abatement tiers by avg assessed value/unit: 28.1% ≤$50k → 17.5% &gt;$60k; primary residence only. Co-op: property tax lives inside maintenance (share assumed ${((nycOwnCfg().coopPtShare ?? 0.5) * 100).toFixed(0)}%, editable in the tax-data JSON); co-ops pay <b>no mortgage recording tax</b>. Sell-side assumptions: ${v.sellBrokerPct}% broker + NYC/NYS transfer taxes; capital gains over the ${INPUTS.status === "mfj" ? "$500k" : "$250k"} exclusion taxed at ${v.capGainPct}%. Homeowners insurance: fold ~$100–150/mo into maintenance.`;
+    `Suggested property tax for a ${$(r.P)} condo: ~${$(r.P * 0.009)}/yr (NYC condos run ~0.8–1.1% of value; check the actual listing). Abatement tiers by avg assessed value/unit: 28.1% ≤$50k → 17.5% &gt;$60k; primary residence only. Co-op: property tax lives inside maintenance (share assumed ${((nycOwnCfg().coopPtShare ?? 0.5) * 100).toFixed(0)}%, editable in the tax-data JSON); co-ops pay <b>no mortgage recording tax</b>. Sell-side assumptions: ${v.sellBrokerPct}% broker + NYC/NYS transfer taxes; capital gains over the ${INPUTS.status === "mfj" ? "$500k" : "$250k"} exclusion (§121 — requires 2 years, so years 1–2 get none) taxed at ${v.capGainPct}%. Homeowners insurance: fold ~$100–150/mo into maintenance. <b>Rent-stabilized comparison?</b> The RGB froze 2026–27 renewals at 0% (Order #58); 2024–26 orders ran 2.75–3% — set rent growth accordingly.`;
 }
 function renderTiles(res, base){
   const el = document.getElementById("tiles");
