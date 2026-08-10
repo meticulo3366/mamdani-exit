@@ -188,6 +188,30 @@ if (!(rvB.years[9].intRatio > rvB.years[0].intRatio)) { fails++; console.log("FA
 else console.log("PASS  interest ratio rises as loan amortizes");
 // mansion tax at 1.2M flows into buy costs: 12,000
 approx("rvo 1.2M mansion in buy costs", rvB.mansion, 12000);
+
+// ---- Mortgage terms & rate overrides ----
+// 15-yr amortization: 640k @ 6%/15yr → $5,400.69/mo; paid off by year 15
+approx("amort 15-yr payment", amortYears(640000, 0.06, 15)[0].interest + amortYears(640000, 0.06, 15)[0].principal, 5400.69 * 12, 5);
+approx("amort 15-yr paid off", amortYears(640000, 0.06, 15)[14].balance, 0, 1);
+// 20-yr: 640k @ 6%/20yr → $4,585.06/mo (716.43 per 100k × 6.4)
+approx("amort 20-yr payment", amortYears(640000, 0.06, 20)[0].interest + amortYears(640000, 0.06, 20)[0].principal, 4585.15 * 12, 8);
+// calcRvo honors termYrs and rate overrides without mutating saved inputs
+RVO = { price: 800000, type: "condo", downPct: 20, rate: 6.0, termYrs: 30, maintMo: 1200, ptaxAnnual: 7200, abatePct: 17.5,
+  coopTaxPct: 45, coopIntPct: 10, rentMo: 3800, rentGrowPct: 3, apprPct: 3, invPct: 7, horizonYrs: 10, sellBrokerPct: 5, capGainPct: 30 };
+const rv5 = calcRvo({ rate: 5 });
+// 640k @ 5%/30yr → $3,435.65/mo
+approx("rate override 5% payment", rv5.years[0].interest + rv5.years[0].principal, 3435.65 * 12, 5);
+approx("override does not mutate saved rate", calcRvo().years[0].interest + calcRvo().years[0].principal, 3837.13 * 12, 5);
+const rv15 = calcRvo({ termYrs: 15 });
+approx("term override 15-yr payment", rv15.years[0].interest + rv15.years[0].principal, 5400.69 * 12, 5);
+// shorter term: less interest, more principal in year 1
+if (!(rv15.years[0].interest < calcRvo().years[0].interest && rv15.years[0].principal > calcRvo().years[0].principal)) {
+  fails++; console.log("FAIL  15-yr should shift payment toward principal");
+} else console.log("PASS  15-yr shifts payment toward principal");
+// lower rate → earlier or equal break-even, never later
+const be6 = calcRvo().breakEven || 99, be5 = calcRvo({ rate: 5 }).breakEven || 99;
+if (be5 > be6) { fails++; console.log("FAIL  lower rate must not delay break-even"); }
+else console.log("PASS  lower rate break-even <= higher rate");
 }
 
 // Run assertions inside the engine's eval scope so its strict-mode declarations are visible.
