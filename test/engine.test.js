@@ -150,12 +150,28 @@ approx("rvo yr1 portfolio", y1.portfolio, 184320 * 1.07 + (y1.outflow - 45600), 
 const sc1 = 824000 * 0.05 + rpttSell(824000, cfg);
 approx("rvo yr1 owner NW", y1.ownerNW, 824000 - y1.balance - sc1, 1);
 if (y1.delta >= 0) { fails++; console.log("FAIL  year-1 NYC buy should trail renting"); } else console.log("PASS  year-1 owner trails renter (as expected)");
-// co-op: no recording tax, abatement as maintenance credit
-RVO = Object.assign({}, RVO, { type: "coop", maintMo: 2400, ptaxAnnual: 0 });
+// co-op: no recording tax, abatement as maintenance credit, §216 deduction-letter split
+RVO = Object.assign({}, RVO, { type: "coop", maintMo: 2400, ptaxAnnual: 0, coopTaxPct: 45, coopIntPct: 10 });
 const rvC = calcRvo();
 approx("rvo co-op no recording", rvC.recording, 0);
-// co-op carry yr1 = 28,800 − (28,800×50% share × 17.5%) = 28,800 − 2,520 = 26,280
-approx("rvo co-op yr1 carry w/ abatement credit", rvC.years[0].carry, 26280);
+// ptax share = 28,800×45% = 12,960; carry = 28,800 − 12,960×17.5% = 28,800 − 2,268 = 26,532
+approx("rvo co-op yr1 carry w/ abatement credit", rvC.years[0].carry, 26532);
+// building interest share = 28,800×10% = 2,880, deducted OUTSIDE the SALT cap
+approx("rvo co-op bldg interest share", rvC.years[0].bldgInt, 2880);
+// all deduction pieces sit in the 24% bracket at 200k: benefit = 24% × (ptaxNet 10,692 + share-loan interest + bldgInt 2,880)
+approx("rvo co-op yr1 tax benefit incl. §216 interest", rvC.years[0].taxBenefit,
+  0.24 * (12960 * 0.825 + rvC.years[0].interest + 2880), 3);
+// SALT-cap independence: with state+city already at the cap, the interest share still deducts.
+// 600k MFJ: SALT cap floors at 19,250 < state+city (59,782) → ptax share adds NOTHING, bldgInt still does.
+INPUTS = { gross: 600000, bonusPct: 40, status: "mfj", k401: 0, spend: 3000, carCost: 750, propTax: 0, otherItem: 0,
+  nySrc: false, nycJob: false, inPerson: false, commuteDays: 3, timeValue: 25 };
+const rvC2 = calcRvo();
+// SALT cap at 600k MFJ = 40,400 − 30%×95,000 = 11,900; renter takes the 32,200 std instead.
+// Owner itemizes 11,900 + interest + bldgInt; benefit = 35% × (that − 32,200), all in the 35% bracket.
+approx("rvo co-op SALT-capped benefit nets out the std deduction", rvC2.years[0].taxBenefit,
+  0.35 * (11900 + rvC2.years[0].interest + 2880 - 32200), 3);
+INPUTS = { gross: 200000, bonusPct: 40, status: "single", k401: 0, spend: 3000, carCost: 750, propTax: 0, otherItem: 0,
+  nySrc: false, nycJob: false, inPerson: false, commuteDays: 3, timeValue: 25 };
 // §121 gating: 30%/yr appreciation → big yr-1 gain gets NO exclusion; yr 2 gets it
 RVO = Object.assign({}, RVO, { type: "condo", maintMo: 1200, ptaxAnnual: 7200, apprPct: 30 });
 const rvG = calcRvo();
