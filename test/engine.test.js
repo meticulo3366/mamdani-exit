@@ -195,6 +195,12 @@ approx("amort 15-yr payment", amortYears(640000, 0.06, 15)[0].interest + amortYe
 approx("amort 15-yr paid off", amortYears(640000, 0.06, 15)[14].balance, 0, 1);
 // 20-yr: 640k @ 6%/20yr → $4,585.06/mo (716.43 per 100k × 6.4)
 approx("amort 20-yr payment", amortYears(640000, 0.06, 20)[0].interest + amortYears(640000, 0.06, 20)[0].principal, 4585.15 * 12, 8);
+// 10-yr: 640k @ 6%/10yr → $7,105.34/mo (1,110.21 per 100k × 6.4); paid off by year 10
+approx("amort 10-yr payment", amortYears(640000, 0.06, 10)[0].interest + amortYears(640000, 0.06, 10)[0].principal, 7105.34 * 12, 8);
+approx("amort 10-yr paid off", amortYears(640000, 0.06, 10)[9].balance, 0, 1);
+// 10-yr term via calcRvo: loan gone at horizon end → owner equity is full value at yr 10
+const rv10 = calcRvo({ termYrs: 10 });
+approx("10-yr term: no balance left at yr 10", rv10.years[9].balance, 0, 1);
 // calcRvo honors termYrs and rate overrides without mutating saved inputs
 RVO = { price: 800000, type: "condo", downPct: 20, rate: 6.0, termYrs: 30, maintMo: 1200, ptaxAnnual: 7200, abatePct: 17.5,
   coopTaxPct: 45, coopIntPct: 10, rentMo: 3800, rentGrowPct: 3, apprPct: 3, invPct: 7, horizonYrs: 10, sellBrokerPct: 5, capGainPct: 30 };
