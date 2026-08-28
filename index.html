@@ -515,7 +515,7 @@ const DEFAULT_DATA = {
     maintGrowth:0.03
   }
 };
-const DEFAULT_ACTIVE = ["nyc","miami","austin","nashville","vegas","seattle","la","boston","chicago","denver","atlanta","providence","lancaster","pittsburgh","beacon","princeton","newhaven"];
+const DEFAULT_ACTIVE = ["nyc","miami","austin","nashville","vegas","seattle","la","boston","chicago","philly","denver","atlanta","providence","lancaster","pittsburgh","beacon","princeton","newhaven"];
 const DEFAULT_INPUTS = {gross:100000, bonusPct:40, status:"single", k401:0, spend:3000, carCost:750, propTax:0, otherItem:0, nySrc:false, nycJob:false, inPerson:false, commuteDays:3, timeValue:25};
 
 const DEFAULT_RVO = {price:800000, type:"condo", downPct:20, rate:6.0, termYrs:30, maintMo:1200, ptaxAnnual:7200, abatePct:17.5,
@@ -523,7 +523,7 @@ const DEFAULT_RVO = {price:800000, type:"condo", downPct:20, rate:6.0, termYrs:3
   rentMo:3800, rentGrowPct:3, apprPct:3, invPct:7, horizonYrs:10, sellBrokerPct:5, capGainPct:30};
 
 /* ================= STATE ================= */
-const LS = {data:"nycexit.data.v4", active:"nycexit.active.v5", inputs:"nycexit.inputs.v2", rvo:"nycexit.rvo.v1", tab:"nycexit.tab.v1"};
+const LS = {data:"nycexit.data.v4", active:"nycexit.active.v6", inputs:"nycexit.inputs.v2", rvo:"nycexit.rvo.v1", tab:"nycexit.tab.v1"};
 // helpers for cities saved before cars/transit existed
 const cityCars = c => (c.cars ?? (c.baseline ? 0 : 1));
 const cityTransit = c => (c.transit ?? (c.baseline ? 132 : 0));
