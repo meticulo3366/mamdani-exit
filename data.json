@@ -1,0 +1,1124 @@
+{
+  "version": "2026.10",
+  "taxYear": 2026,
+  "defaults": {
+    "inputs": {
+      "gross": 100000,
+      "bonusPct": 40,
+      "status": "single",
+      "k401": 0,
+      "spend": 3000,
+      "carCost": 750,
+      "propTax": 0,
+      "otherItem": 0,
+      "nySrc": false,
+      "nycJob": false,
+      "inPerson": false,
+      "commuteDays": 3,
+      "timeValue": 25
+    },
+    "rvo": {
+      "price": 800000,
+      "type": "condo",
+      "downPct": 20,
+      "rate": 6,
+      "termYrs": 30,
+      "maintMo": 1200,
+      "ptaxAnnual": 7200,
+      "abatePct": 17.5,
+      "coopDedPct": 60,
+      "coopIntPct": 10,
+      "rentMo": 3800,
+      "rentGrowPct": 3,
+      "apprPct": 3,
+      "invPct": 7,
+      "horizonYrs": 10,
+      "sellBrokerPct": 5,
+      "capGainPct": 30
+    },
+    "activeCities": [
+      "nyc",
+      "miami",
+      "austin",
+      "nashville",
+      "vegas",
+      "seattle",
+      "la",
+      "boston",
+      "chicago",
+      "philly",
+      "denver",
+      "atlanta",
+      "providence",
+      "lancaster",
+      "pittsburgh",
+      "beacon",
+      "princeton",
+      "newhaven"
+    ]
+  },
+  "data": {
+    "meta": {
+      "taxYear": 2026,
+      "verified": "2026-08-09"
+    },
+    "federal": {
+      "stdDed": {
+        "single": 16100,
+        "mfj": 32200
+      },
+      "brackets": {
+        "single": [
+          [
+            12400,
+            0.1
+          ],
+          [
+            50400,
+            0.12
+          ],
+          [
+            105700,
+            0.22
+          ],
+          [
+            201775,
+            0.24
+          ],
+          [
+            256225,
+            0.32
+          ],
+          [
+            640600,
+            0.35
+          ],
+          [
+            null,
+            0.37
+          ]
+        ],
+        "mfj": [
+          [
+            24800,
+            0.1
+          ],
+          [
+            100800,
+            0.12
+          ],
+          [
+            211400,
+            0.22
+          ],
+          [
+            403550,
+            0.24
+          ],
+          [
+            512450,
+            0.32
+          ],
+          [
+            768700,
+            0.35
+          ],
+          [
+            null,
+            0.37
+          ]
+        ]
+      },
+      "salt": {
+        "cap": 40400,
+        "floor": 10000,
+        "phaseoutStart": 505000,
+        "phaseoutRate": 0.3
+      }
+    },
+    "fica": {
+      "ssRate": 0.062,
+      "ssWageBase": 184500,
+      "medicareRate": 0.0145,
+      "addlMedicareRate": 0.009,
+      "addlThreshold": {
+        "single": 200000,
+        "mfj": 250000
+      }
+    },
+    "states": {
+      "NY": {
+        "name": "New York",
+        "type": "brackets",
+        "stdDed": {
+          "single": 8000,
+          "mfj": 16050
+        },
+        "recapture": "ny",
+        "brackets": {
+          "single": [
+            [
+              8500,
+              0.039
+            ],
+            [
+              11700,
+              0.044
+            ],
+            [
+              13900,
+              0.0515
+            ],
+            [
+              80650,
+              0.054
+            ],
+            [
+              215400,
+              0.059
+            ],
+            [
+              1077550,
+              0.0685
+            ],
+            [
+              5000000,
+              0.0965
+            ],
+            [
+              25000000,
+              0.103
+            ],
+            [
+              null,
+              0.109
+            ]
+          ],
+          "mfj": [
+            [
+              17150,
+              0.039
+            ],
+            [
+              23600,
+              0.044
+            ],
+            [
+              27900,
+              0.0515
+            ],
+            [
+              161550,
+              0.054
+            ],
+            [
+              323200,
+              0.059
+            ],
+            [
+              2155350,
+              0.0685
+            ],
+            [
+              5000000,
+              0.0965
+            ],
+            [
+              25000000,
+              0.103
+            ],
+            [
+              null,
+              0.109
+            ]
+          ]
+        }
+      },
+      "CA": {
+        "name": "California",
+        "type": "brackets",
+        "stdDed": {
+          "single": 5706,
+          "mfj": 11412
+        },
+        "surtax": {
+          "threshold": 1000000,
+          "rate": 0.01,
+          "label": "CA mental-health surtax"
+        },
+        "payroll": {
+          "rate": 0.012,
+          "cap": null,
+          "label": "CA SDI (uncapped)"
+        },
+        "brackets": {
+          "single": [
+            [
+              10756,
+              0.01
+            ],
+            [
+              25499,
+              0.02
+            ],
+            [
+              40245,
+              0.04
+            ],
+            [
+              55866,
+              0.06
+            ],
+            [
+              70612,
+              0.08
+            ],
+            [
+              360659,
+              0.093
+            ],
+            [
+              432787,
+              0.103
+            ],
+            [
+              721314,
+              0.113
+            ],
+            [
+              1000000,
+              0.123
+            ],
+            [
+              null,
+              0.133
+            ]
+          ],
+          "mfj": [
+            [
+              21512,
+              0.01
+            ],
+            [
+              50998,
+              0.02
+            ],
+            [
+              80490,
+              0.04
+            ],
+            [
+              111732,
+              0.06
+            ],
+            [
+              141224,
+              0.08
+            ],
+            [
+              721318,
+              0.093
+            ],
+            [
+              865574,
+              0.103
+            ],
+            [
+              1442628,
+              0.113
+            ],
+            [
+              2000000,
+              0.123
+            ],
+            [
+              null,
+              0.133
+            ]
+          ]
+        }
+      },
+      "NJ": {
+        "name": "New Jersey",
+        "type": "brackets",
+        "stdDed": {
+          "single": 1000,
+          "mfj": 2000
+        },
+        "brackets": {
+          "single": [
+            [
+              20000,
+              0.014
+            ],
+            [
+              35000,
+              0.0175
+            ],
+            [
+              40000,
+              0.035
+            ],
+            [
+              75000,
+              0.05525
+            ],
+            [
+              500000,
+              0.0637
+            ],
+            [
+              1000000,
+              0.0897
+            ],
+            [
+              null,
+              0.1075
+            ]
+          ],
+          "mfj": [
+            [
+              20000,
+              0.014
+            ],
+            [
+              50000,
+              0.0175
+            ],
+            [
+              70000,
+              0.0245
+            ],
+            [
+              80000,
+              0.035
+            ],
+            [
+              150000,
+              0.05525
+            ],
+            [
+              500000,
+              0.0637
+            ],
+            [
+              1000000,
+              0.0897
+            ],
+            [
+              null,
+              0.1075
+            ]
+          ]
+        }
+      },
+      "CT": {
+        "name": "Connecticut",
+        "type": "brackets",
+        "stdDed": {
+          "single": 0,
+          "mfj": 0
+        },
+        "brackets": {
+          "single": [
+            [
+              10000,
+              0.02
+            ],
+            [
+              50000,
+              0.045
+            ],
+            [
+              100000,
+              0.055
+            ],
+            [
+              200000,
+              0.06
+            ],
+            [
+              250000,
+              0.065
+            ],
+            [
+              500000,
+              0.069
+            ],
+            [
+              null,
+              0.0699
+            ]
+          ],
+          "mfj": [
+            [
+              20000,
+              0.02
+            ],
+            [
+              100000,
+              0.045
+            ],
+            [
+              200000,
+              0.055
+            ],
+            [
+              400000,
+              0.06
+            ],
+            [
+              500000,
+              0.065
+            ],
+            [
+              1000000,
+              0.069
+            ],
+            [
+              null,
+              0.0699
+            ]
+          ]
+        }
+      },
+      "MA": {
+        "name": "Massachusetts",
+        "type": "flat",
+        "rate": 0.05,
+        "stdDed": {
+          "single": 4400,
+          "mfj": 8800
+        },
+        "surtax": {
+          "threshold": 1083150,
+          "rate": 0.04,
+          "label": "MA millionaire surtax"
+        }
+      },
+      "IL": {
+        "name": "Illinois",
+        "type": "flat",
+        "rate": 0.0495,
+        "stdDed": {
+          "single": 2850,
+          "mfj": 5700
+        }
+      },
+      "PA": {
+        "name": "Pennsylvania",
+        "type": "flat",
+        "rate": 0.0307,
+        "stdDed": {
+          "single": 0,
+          "mfj": 0
+        }
+      },
+      "CO": {
+        "name": "Colorado",
+        "type": "flat",
+        "rate": 0.044,
+        "stdDed": {
+          "single": 16100,
+          "mfj": 32200
+        }
+      },
+      "GA": {
+        "name": "Georgia",
+        "type": "flat",
+        "rate": 0.0519,
+        "stdDed": {
+          "single": 12000,
+          "mfj": 24000
+        }
+      },
+      "NC": {
+        "name": "North Carolina",
+        "type": "flat",
+        "rate": 0.0399,
+        "stdDed": {
+          "single": 12750,
+          "mfj": 25500
+        }
+      },
+      "AZ": {
+        "name": "Arizona",
+        "type": "flat",
+        "rate": 0.025,
+        "stdDed": {
+          "single": 16100,
+          "mfj": 32200
+        }
+      },
+      "RI": {
+        "name": "Rhode Island",
+        "type": "brackets",
+        "stdDed": {
+          "single": 10550,
+          "mfj": 21100
+        },
+        "brackets": {
+          "single": [
+            [
+              82050,
+              0.0375
+            ],
+            [
+              186450,
+              0.0475
+            ],
+            [
+              null,
+              0.0599
+            ]
+          ],
+          "mfj": [
+            [
+              82050,
+              0.0375
+            ],
+            [
+              186450,
+              0.0475
+            ],
+            [
+              null,
+              0.0599
+            ]
+          ]
+        }
+      },
+      "FL": {
+        "name": "Florida",
+        "type": "none"
+      },
+      "TX": {
+        "name": "Texas",
+        "type": "none"
+      },
+      "TN": {
+        "name": "Tennessee",
+        "type": "none"
+      },
+      "NV": {
+        "name": "Nevada",
+        "type": "none"
+      },
+      "WA": {
+        "name": "Washington",
+        "type": "none"
+      }
+    },
+    "cities": {
+      "nyc": {
+        "name": "New York",
+        "state": "NY",
+        "rent": 4200,
+        "colIndex": 1,
+        "commuteMin": 35,
+        "cars": 0,
+        "transit": 132,
+        "baseline": true,
+        "cityTax": {
+          "type": "brackets",
+          "base": "stateTaxable",
+          "brackets": {
+            "single": [
+              [
+                12000,
+                0.03078
+              ],
+              [
+                25000,
+                0.03762
+              ],
+              [
+                50000,
+                0.03819
+              ],
+              [
+                null,
+                0.03876
+              ]
+            ],
+            "mfj": [
+              [
+                21600,
+                0.03078
+              ],
+              [
+                45000,
+                0.03762
+              ],
+              [
+                90000,
+                0.03819
+              ],
+              [
+                null,
+                0.03876
+              ]
+            ]
+          }
+        }
+      },
+      "miami": {
+        "name": "Miami",
+        "state": "FL",
+        "rent": 2800,
+        "colIndex": 0.88,
+        "commuteMin": 30,
+        "cars": 1,
+        "transit": 0
+      },
+      "austin": {
+        "name": "Austin",
+        "state": "TX",
+        "rent": 1700,
+        "colIndex": 0.82,
+        "commuteMin": 25,
+        "cars": 1,
+        "transit": 0
+      },
+      "dallas": {
+        "name": "Dallas",
+        "state": "TX",
+        "rent": 1600,
+        "colIndex": 0.8,
+        "commuteMin": 28,
+        "cars": 1,
+        "transit": 0
+      },
+      "nashville": {
+        "name": "Nashville",
+        "state": "TN",
+        "rent": 1650,
+        "colIndex": 0.8,
+        "commuteMin": 25,
+        "cars": 1,
+        "transit": 0
+      },
+      "vegas": {
+        "name": "Las Vegas",
+        "state": "NV",
+        "rent": 1500,
+        "colIndex": 0.78,
+        "commuteMin": 25,
+        "cars": 1,
+        "transit": 0
+      },
+      "seattle": {
+        "name": "Seattle",
+        "state": "WA",
+        "rent": 2300,
+        "colIndex": 0.92,
+        "commuteMin": 30,
+        "cars": 1,
+        "transit": 100
+      },
+      "sf": {
+        "name": "San Francisco",
+        "state": "CA",
+        "rent": 3300,
+        "colIndex": 0.98,
+        "commuteMin": 30,
+        "cars": 0,
+        "transit": 85
+      },
+      "la": {
+        "name": "Los Angeles",
+        "state": "CA",
+        "rent": 2400,
+        "colIndex": 0.9,
+        "commuteMin": 35,
+        "cars": 1,
+        "transit": 0
+      },
+      "boston": {
+        "name": "Boston",
+        "state": "MA",
+        "rent": 3100,
+        "colIndex": 0.95,
+        "commuteMin": 30,
+        "cars": 0,
+        "transit": 90
+      },
+      "jerseycity": {
+        "name": "Jersey City",
+        "state": "NJ",
+        "rent": 3300,
+        "colIndex": 0.92,
+        "commuteMin": 35,
+        "cars": 0,
+        "transit": 130
+      },
+      "stamford": {
+        "name": "Stamford",
+        "state": "CT",
+        "rent": 2800,
+        "colIndex": 0.9,
+        "commuteMin": 60,
+        "cars": 1,
+        "transit": 280,
+        "nycBelt": true
+      },
+      "chicago": {
+        "name": "Chicago",
+        "state": "IL",
+        "rent": 2100,
+        "colIndex": 0.85,
+        "commuteMin": 30,
+        "cars": 0,
+        "transit": 75
+      },
+      "philly": {
+        "name": "Philadelphia",
+        "state": "PA",
+        "rent": 1800,
+        "colIndex": 0.83,
+        "commuteMin": 30,
+        "cars": 0,
+        "transit": 96,
+        "cityTax": {
+          "type": "flat",
+          "rate": 0.0374,
+          "base": "gross",
+          "label": "Philadelphia wage tax"
+        }
+      },
+      "denver": {
+        "name": "Denver",
+        "state": "CO",
+        "rent": 1800,
+        "colIndex": 0.85,
+        "commuteMin": 28,
+        "cars": 1,
+        "transit": 0
+      },
+      "atlanta": {
+        "name": "Atlanta",
+        "state": "GA",
+        "rent": 1800,
+        "colIndex": 0.82,
+        "commuteMin": 32,
+        "cars": 1,
+        "transit": 0
+      },
+      "charlotte": {
+        "name": "Charlotte",
+        "state": "NC",
+        "rent": 1600,
+        "colIndex": 0.78,
+        "commuteMin": 26,
+        "cars": 1,
+        "transit": 0
+      },
+      "phoenix": {
+        "name": "Phoenix",
+        "state": "AZ",
+        "rent": 1500,
+        "colIndex": 0.8,
+        "commuteMin": 28,
+        "cars": 1,
+        "transit": 0
+      },
+      "beacon": {
+        "name": "Beacon",
+        "state": "NY",
+        "rent": 2100,
+        "colIndex": 0.82,
+        "commuteMin": 85,
+        "cars": 1,
+        "transit": 415,
+        "region": "Hudson Valley · ~1:25 Metro-North to NYC"
+      },
+      "princeton": {
+        "name": "Princeton",
+        "state": "NJ",
+        "rent": 2600,
+        "colIndex": 0.9,
+        "commuteMin": 75,
+        "cars": 1,
+        "transit": 460,
+        "nycBelt": true,
+        "region": "~1:15 NJ Transit to NYC"
+      },
+      "asburypark": {
+        "name": "Asbury Park",
+        "state": "NJ",
+        "rent": 2200,
+        "colIndex": 0.84,
+        "commuteMin": 90,
+        "cars": 1,
+        "transit": 450,
+        "nycBelt": true,
+        "region": "Jersey Shore · ~1:30 NJ Transit to NYC"
+      },
+      "newhaven": {
+        "name": "New Haven",
+        "state": "CT",
+        "rent": 1900,
+        "colIndex": 0.83,
+        "commuteMin": 100,
+        "cars": 1,
+        "transit": 526,
+        "nycBelt": true,
+        "region": "~1:40 Metro-North to NYC"
+      },
+      "lancaster": {
+        "name": "Lancaster",
+        "state": "PA",
+        "rent": 1500,
+        "colIndex": 0.75,
+        "commuteMin": 70,
+        "cars": 1,
+        "transit": 0,
+        "region": "~1:10 Amtrak to Philadelphia",
+        "cityTax": {
+          "type": "flat",
+          "rate": 0.011,
+          "base": "stateTaxable",
+          "label": "PA local EIT (typical, editable)"
+        }
+      },
+      "worcester": {
+        "name": "Worcester",
+        "state": "MA",
+        "rent": 1800,
+        "colIndex": 0.82,
+        "commuteMin": 60,
+        "cars": 1,
+        "transit": 0,
+        "region": "~1:00 to Boston"
+      },
+      "providence": {
+        "name": "Providence",
+        "state": "RI",
+        "rent": 1900,
+        "colIndex": 0.85,
+        "commuteMin": 60,
+        "cars": 1,
+        "transit": 0,
+        "region": "~1:00 to Boston (MBTA/Amtrak)"
+      },
+      "fortcollins": {
+        "name": "Fort Collins",
+        "state": "CO",
+        "rent": 1700,
+        "colIndex": 0.83,
+        "commuteMin": 75,
+        "cars": 1,
+        "transit": 0,
+        "region": "~1:15 to Denver"
+      },
+      "cosprings": {
+        "name": "Colorado Springs",
+        "state": "CO",
+        "rent": 1500,
+        "colIndex": 0.8,
+        "commuteMin": 70,
+        "cars": 1,
+        "transit": 0,
+        "region": "~1:10 to Denver"
+      },
+      "tacoma": {
+        "name": "Tacoma",
+        "state": "WA",
+        "rent": 1700,
+        "colIndex": 0.85,
+        "commuteMin": 50,
+        "cars": 1,
+        "transit": 0,
+        "region": "~0:50 to Seattle"
+      },
+      "sacramento": {
+        "name": "Sacramento",
+        "state": "CA",
+        "rent": 1800,
+        "colIndex": 0.85,
+        "commuteMin": 90,
+        "cars": 1,
+        "transit": 0,
+        "region": "~1:30 to San Francisco"
+      },
+      "riverside": {
+        "name": "Riverside",
+        "state": "CA",
+        "rent": 1900,
+        "colIndex": 0.85,
+        "commuteMin": 75,
+        "cars": 1,
+        "transit": 0,
+        "region": "Inland Empire · ~1:15 to LA"
+      },
+      "newbraunfels": {
+        "name": "New Braunfels",
+        "state": "TX",
+        "rent": 1400,
+        "colIndex": 0.75,
+        "commuteMin": 50,
+        "cars": 1,
+        "transit": 0,
+        "region": "~0:50 to Austin · ~0:35 to San Antonio"
+      },
+      "murfreesboro": {
+        "name": "Murfreesboro",
+        "state": "TN",
+        "rent": 1400,
+        "colIndex": 0.74,
+        "commuteMin": 45,
+        "cars": 1,
+        "transit": 0,
+        "region": "~0:45 to Nashville"
+      },
+      "athens": {
+        "name": "Athens",
+        "state": "GA",
+        "rent": 1400,
+        "colIndex": 0.74,
+        "commuteMin": 85,
+        "cars": 1,
+        "transit": 0,
+        "region": "~1:25 to Atlanta"
+      },
+      "westpalm": {
+        "name": "West Palm Beach",
+        "state": "FL",
+        "rent": 2300,
+        "colIndex": 0.85,
+        "commuteMin": 75,
+        "cars": 1,
+        "transit": 0,
+        "region": "~1:15 to Miami · Brightline ~1:20"
+      },
+      "hickory": {
+        "name": "Hickory",
+        "state": "NC",
+        "rent": 1200,
+        "colIndex": 0.7,
+        "commuteMin": 60,
+        "cars": 1,
+        "transit": 0,
+        "region": "~1:00 to Charlotte"
+      },
+      "pittsburgh": {
+        "name": "Pittsburgh",
+        "state": "PA",
+        "rent": 1400,
+        "colIndex": 0.78,
+        "commuteMin": 26,
+        "cars": 1,
+        "transit": 0,
+        "cityTax": {
+          "type": "flat",
+          "rate": 0.03,
+          "base": "stateTaxable",
+          "label": "Pittsburgh resident EIT (city + school)"
+        }
+      },
+      "allentown": {
+        "name": "Allentown",
+        "state": "PA",
+        "rent": 1500,
+        "colIndex": 0.76,
+        "commuteMin": 100,
+        "cars": 1,
+        "transit": 480,
+        "nycBelt": true,
+        "region": "Lehigh Valley · ~1:40 bus to NYC",
+        "cityTax": {
+          "type": "flat",
+          "rate": 0.011,
+          "base": "stateTaxable",
+          "label": "PA local EIT (typical, editable)"
+        }
+      },
+      "newport": {
+        "name": "Newport",
+        "state": "RI",
+        "rent": 2100,
+        "colIndex": 0.88,
+        "commuteMin": 40,
+        "cars": 1,
+        "transit": 0,
+        "region": "~0:40 to Providence · ~1:30 to Boston"
+      }
+    },
+    "nycOwn": {
+      "mansion": [
+        [
+          1000000,
+          0.01
+        ],
+        [
+          2000000,
+          0.0125
+        ],
+        [
+          3000000,
+          0.015
+        ],
+        [
+          5000000,
+          0.0225
+        ],
+        [
+          10000000,
+          0.0325
+        ],
+        [
+          15000000,
+          0.035
+        ],
+        [
+          20000000,
+          0.0375
+        ],
+        [
+          25000000,
+          0.039
+        ]
+      ],
+      "recording": {
+        "threshold": 500000,
+        "below": 0.018,
+        "above": 0.01925,
+        "coopExempt": true,
+        "note": "buyer's share (statutory totals 2.05%/2.175% include 0.25% the lender pays)"
+      },
+      "rpttSell": {
+        "threshold": 500000,
+        "low": 0.01,
+        "high": 0.01425,
+        "nys": 0.004,
+        "nysSupp": 0.0025,
+        "nysSuppMin": 3000000,
+        "note": "nysSupp raises total NYS to 0.65% on residential $3M+"
+      },
+      "abatementTiers": [
+        [
+          50000,
+          28.1
+        ],
+        [
+          55000,
+          25.2
+        ],
+        [
+          60000,
+          22.5
+        ],
+        [
+          null,
+          17.5
+        ]
+      ],
+      "closeOtherPct": {
+        "condo": 0.015,
+        "coop": 0.008,
+        "house": 0.015
+      },
+      "maintGrowth": 0.03
+    }
+  }
+}

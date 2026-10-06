@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mamdani Exit API</title>
+<meta name="robots" content="noindex">
+</head>
+<body style="margin:0;font:13px/1.4 ui-monospace,monospace;background:#fff;color:#111">
+<pre id="json" style="margin:0;padding:12px;white-space:pre-wrap;word-break:break-word">computing…</pre>
+<script src="engine.js"></script>
+<script>
+"use strict";
+/* JSON endpoint for agents, computed client-side from URL query parameters (static host, no backend).
+ * Requires a JS-executing client (agent browsers). Non-JS clients: fetch engine.js + data.json instead — see /API.md.
+ *
+ * GET api.html                                  → usage + schemas
+ * GET api.html?mode=cities&gross=150000&...     → ranked city comparison
+ * GET api.html?mode=rvo&price=800000&type=coop&...  → NYC rent-vs-own simulation
+ * GET api.html?mode=data                        → the verified tax dataset
+ */
+(function () {
+  const E = window.NYCEXIT;
+  const q = new URLSearchParams(location.search);
+  const num = (k) => (q.has(k) && q.get(k) !== "" && !isNaN(+q.get(k))) ? +q.get(k) : undefined;
+  const bool = (k) => q.has(k) ? ["1", "true", "yes"].includes(q.get(k).toLowerCase()) : undefined;
+  const pick = (obj) => { const o = {}; for (const [k, v] of Object.entries(obj)) if (v !== undefined) o[k] = v; return o; };
+  const round2 = (x) => (typeof x === "number" && isFinite(x)) ? Math.round(x * 100) / 100 : x;
+  const deepRound = (x) => Array.isArray(x) ? x.map(deepRound)
+    : (x && typeof x === "object") ? Object.fromEntries(Object.entries(x).map(([k, v]) => [k, deepRound(v)]))
+    : round2(x);
+
+  let out;
+  try {
+    const mode = q.get("mode") || (q.toString() ? "cities" : "help");
+    const inputs = pick({
+      gross: num("gross"), bonusPct: num("bonusPct"), status: q.get("status") || undefined,
+      k401: num("k401"), spend: num("spend"), carCost: num("carCost"),
+      propTax: num("propTax"), otherItem: num("otherItem"),
+      nySrc: bool("nySrc"), nycJob: bool("nycJob"), inPerson: bool("inPerson"),
+      commuteDays: num("commuteDays"), timeValue: num("timeValue")
+    });
+    if (inputs.status && !["single", "mfj"].includes(inputs.status)) throw new Error('status must be "single" or "mfj"');
+
+    if (mode === "help") {
+      out = {
+        name: "The Mamdani Exit — agent API", version: E.VERSION, taxYear: E.DEFAULT_DATA.meta.taxYear,
+        note: "All computation happens in this page's JavaScript (static host). Amounts are USD/year unless noted.",
+        modes: {
+          cities: "api.html?mode=cities&gross=150000&status=single&cities=nyc,miami,austin — ranked discretionary income. Params: " +
+            Object.keys(E.DEFAULT_INPUTS).join(", ") + " + cities (comma list)",
+          rvo: "api.html?mode=rvo&gross=150000&price=800000&type=coop&coopDedPct=60&maintMo=2400&rentMo=3800 — NYC rent-vs-own. Params: income params + " +
+            Object.keys(E.DEFAULT_RVO).join(", "),
+          data: "api.html?mode=data — the full verified tax dataset (also at data.json, no JS needed)"
+        },
+        cityIds: Object.keys(E.DEFAULT_DATA.cities),
+        defaults: { inputs: E.DEFAULT_INPUTS, rvo: E.DEFAULT_RVO, activeCities: E.DEFAULT_ACTIVE },
+        docs: "API.md", machineHints: "llms.txt",
+        disclaimer: "Not tax advice. 2026 data verified against primary sources; see README."
+      };
+    } else if (mode === "cities") {
+      const ids = q.get("cities") ? q.get("cities").split(",").map(s => s.trim()).filter(Boolean) : undefined;
+      out = E.compareCities(inputs, E.DEFAULT_DATA, ids);
+      out = { mode, version: E.VERSION, taxYear: E.DEFAULT_DATA.meta.taxYear, inputs: Object.assign({}, E.DEFAULT_INPUTS, inputs),
+        fieldNotes: { disc: "discretionary income per year after taxes, housing, transport, other living costs (and imputed commute time when inPerson)", deltaVsBaseline: "vs staying in NYC", effRate: "total tax / gross" },
+        baseline: out.baseline, results: out.results };
+    } else if (mode === "rvo") {
+      const rvo = pick({
+        price: num("price"), type: q.get("type") || undefined, downPct: num("downPct"), rate: num("rate"),
+        termYrs: num("termYrs"), maintMo: num("maintMo"), ptaxAnnual: num("ptaxAnnual"), abatePct: num("abatePct"),
+        coopDedPct: num("coopDedPct"), coopIntPct: num("coopIntPct"), rentMo: num("rentMo"),
+        rentGrowPct: num("rentGrowPct"), apprPct: num("apprPct"), invPct: num("invPct"),
+        horizonYrs: num("horizonYrs"), sellBrokerPct: num("sellBrokerPct"), capGainPct: num("capGainPct")
+      });
+      if (rvo.type && !["condo", "coop", "house"].includes(rvo.type)) throw new Error('type must be condo|coop|house');
+      const r = E.calcRvo(rvo, inputs, E.DEFAULT_DATA);
+      out = { mode, version: E.VERSION, taxYear: E.DEFAULT_DATA.meta.taxYear,
+        inputs: Object.assign({}, E.DEFAULT_INPUTS, inputs), rvo: Object.assign({}, E.DEFAULT_RVO, rvo),
+        fieldNotes: {
+          breakEven: "first year owning beats renting if sold then (null = never within horizon)",
+          years: "annual simulation; delta = owner net worth minus renter portfolio if sold that year",
+          taxBenefit: "federal savings vs renting, split into benefitMaint (property/§216 deductions) + benefitBorrow (your mortgage interest)"
+        },
+        summary: {
+          breakEven: r.breakEven, cashToClose: r.initialOutlay, mansionTax: r.mansion, recordingTax: r.recording,
+          year1: { afterTaxMonthlyCost: r.years[0].outflow / 12, trueMonthlyCostNetOfPrincipal: (r.years[0].outflow - r.years[0].principal) / 12,
+            rentMonthly: r.years[0].rentAnnual / 12, taxSavingsFromMaintenance: r.years[0].benefitMaint, taxSavingsFromBorrowing: r.years[0].benefitBorrow },
+          atHorizon: { year: r.horizonYrs, ownMinusRentWealth: r.years[r.years.length - 1].delta }
+        },
+        detail: r };
+    } else if (mode === "data") {
+      out = { mode, version: E.VERSION, data: E.DEFAULT_DATA };
+    } else {
+      throw new Error('unknown mode "' + mode + '" — use cities | rvo | data, or no params for help');
+    }
+  } catch (e) {
+    out = { error: String(e && e.message || e), help: "api.html (no params) describes modes, params, and valid city ids" };
+  }
+  const text = JSON.stringify(deepRound(out), null, 2);
+  document.getElementById("json").textContent = text;
+  document.title = out.error ? "API error" : "Mamdani Exit API — " + (out.mode || "help");
+})();
+</script>
+</body>
+</html>

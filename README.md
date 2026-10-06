@@ -4,6 +4,17 @@ Deciding whether to leave NYC? This calculator compares what you actually keep �
 
 **Live page:** https://meticulo3366.github.io/mamdani-exit/
 
+## For agents (ChatGPT, Claude, or any LLM)
+
+The calculator is machine-usable — static files only, open CORS, no backend ([full docs](API.md), [llms.txt](llms.txt)):
+
+- **[engine.js](https://meticulo3366.github.io/mamdani-exit/engine.js)** — the tested engine as a dependency-free CommonJS/browser module; fetch it and call `compareCities` / `calcRvo` for exact answers
+- **[api.html](https://meticulo3366.github.io/mamdani-exit/api.html)** — URL-parameter JSON endpoint for browser-driving agents (`api.html?mode=cities&gross=150000`); the page body becomes a JSON document
+- **[data.json](https://meticulo3366.github.io/mamdani-exit/data.json)** — the verified tax dataset for clients that can't run JS
+- **[mcp-server.js](https://meticulo3366.github.io/mamdani-exit/mcp-server.js)** — zero-dependency MCP server (stdio): clone the repo and register `node mcp-server.js` in Claude Desktop/Code, ChatGPT desktop, or Cursor. Tools: `compare_cities`, `rent_vs_own_nyc`, `get_tax_data`
+
+Run the test suites with `node test/engine.test.js` (94 checks) and `node test/mcp.test.js`.
+
 ## What it models
 
 - 2026 federal brackets & standard deduction (post-OBBBA), SALT cap with high-income phase-down, auto standard-vs-itemized

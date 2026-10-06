@@ -1,15 +1,13 @@
-// Headless verification of the calculator's tax engine.
-// Extracts the engine section from the HTML and cross-checks against hand-computed values.
-// Run: node test/engine.test.js
-const fs = require("fs");
-const path = require("path");
-const html = fs.readFileSync(path.join(__dirname, "..", "src", "calculator.html"), "utf8");
-const start = html.indexOf('"use strict"');
-const end = html.indexOf("/* ================= FORMATTING");
-const engine = html.slice(start, end);
-
-// stubs
-global.localStorage = { getItem: () => null, setItem: () => {} };
+// Headless verification of the calculator's tax engine (src/engine.js),
+// cross-checked against hand-computed values. Run: node test/engine.test.js
+const E = require("../src/engine.js");
+const { DEFAULT_DATA, progTax, stateTax, cityCars, cityTransit,
+        mansionTax, recordingTax, rpttSell, amortYears } = E;
+const DATA = E.DEFAULT_DATA;
+let INPUTS = {};
+let RVO = {};
+const calcCity = id => E.calcCity(id, INPUTS, DATA);
+const calcRvo = over => E.calcRvo(Object.assign({}, RVO, over || {}), INPUTS, DATA);
 
 let fails = 0;
 function approx(label, got, want, tol = 2) {
@@ -238,7 +236,6 @@ const rvLegacy = calcRvo({ type: "coop", maintMo: 2400, coopDedPct: null, coopTa
 approx("legacy split migrates to combined 55%", rvLegacy.years[0].carry, 26532);
 }
 
-// Run assertions inside the engine's eval scope so its strict-mode declarations are visible.
-eval(engine + "\n;(" + runTests.toString() + ")();");
+runTests();
 console.log(fails === 0 ? "\nALL ENGINE CHECKS PASS" : `\n${fails} CHECK(S) FAILED`);
 process.exit(fails === 0 ? 0 : 1);

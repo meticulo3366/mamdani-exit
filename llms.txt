@@ -1,0 +1,34 @@
+# The Mamdani Exit — NYC cost-of-living, tax & rent-vs-own calculator (agent interface)
+
+Verified 2026 US tax data (federal, state, NYC-specific). Static site — all computation is
+client-side JavaScript; there is no backend. Amounts are USD per year unless noted. Not tax advice.
+
+## If you can execute JavaScript (recommended — exact answers)
+Fetch https://meticulo3366.github.io/mamdani-exit/engine.js (CommonJS + browser global `NYCEXIT`,
+no dependencies) and call:
+- compareCities(inputs, null, cityIds?) -> ranked discretionary income across US cities
+- calcCity(cityId, inputs, null)        -> one city's full tax/cost breakdown
+- calcRvo(rvoParams, inputs, null)      -> NYC rent-vs-own simulation (mansion tax, recording tax,
+  co-op SS216 deduction letter, abatement, SALT cap, Pub 936, SS121, transfer taxes, break-even)
+Defaults and valid city ids: DEFAULT_INPUTS, DEFAULT_RVO, DEFAULT_ACTIVE, DEFAULT_DATA.cities.
+Full parameter reference: https://meticulo3366.github.io/mamdani-exit/API.md
+
+## If you drive a browser (agent mode)
+Open https://meticulo3366.github.io/mamdani-exit/api.html with URL query parameters; the page body
+becomes a single JSON document. No parameters -> self-describing help JSON.
+Examples:
+  api.html?mode=cities&gross=150000&status=single&cities=nyc,miami,austin
+  api.html?mode=rvo&gross=150000&price=800000&type=coop&coopDedPct=60&maintMo=2400&rentMo=3800
+
+## If you can only fetch text (no JS)
+https://meticulo3366.github.io/mamdani-exit/data.json has every verified bracket, rate, threshold,
+NYC ownership rule, and city preset — compute with care; the SALT cap, NY recapture, and SS121/Pub 936
+rules in API.md are the easy things to get wrong.
+
+## MCP (Claude Desktop/Code, ChatGPT desktop, Cursor, ...)
+Download https://meticulo3366.github.io/mamdani-exit/mcp-server.js plus engine.js into src/
+(or git clone https://github.com/meticulo3366/mamdani-exit), then register:
+  { "mcpServers": { "mamdani-exit": { "command": "node", "args": ["<path>/mcp-server.js"] } } }
+Tools: compare_cities, rent_vs_own_nyc, get_tax_data.
+
+Human UI: https://meticulo3366.github.io/mamdani-exit/
