@@ -151,7 +151,8 @@ const sc1 = 824000 * 0.05 + rpttSell(824000, cfg);
 approx("rvo yr1 owner NW", y1.ownerNW, 824000 - y1.balance - sc1, 1);
 if (y1.delta >= 0) { fails++; console.log("FAIL  year-1 NYC buy should trail renting"); } else console.log("PASS  year-1 owner trails renter (as expected)");
 // co-op: no recording tax, abatement as maintenance credit, §216 deduction-letter split
-RVO = Object.assign({}, RVO, { type: "coop", maintMo: 2400, ptaxAnnual: 0, coopTaxPct: 45, coopIntPct: 10 });
+// combined 55% deductible, of which 10% bldg interest → 45% property-tax share
+RVO = Object.assign({}, RVO, { type: "coop", maintMo: 2400, ptaxAnnual: 0, coopDedPct: 55, coopIntPct: 10 });
 const rvC = calcRvo();
 approx("rvo co-op no recording", rvC.recording, 0);
 // ptax share = 28,800×45% = 12,960; carry = 28,800 − 12,960×17.5% = 28,800 − 2,268 = 26,532
@@ -203,7 +204,7 @@ const rv10 = calcRvo({ termYrs: 10 });
 approx("10-yr term: no balance left at yr 10", rv10.years[9].balance, 0, 1);
 // calcRvo honors termYrs and rate overrides without mutating saved inputs
 RVO = { price: 800000, type: "condo", downPct: 20, rate: 6.0, termYrs: 30, maintMo: 1200, ptaxAnnual: 7200, abatePct: 17.5,
-  coopTaxPct: 45, coopIntPct: 10, rentMo: 3800, rentGrowPct: 3, apprPct: 3, invPct: 7, horizonYrs: 10, sellBrokerPct: 5, capGainPct: 30 };
+  coopDedPct: 55, coopIntPct: 10, rentMo: 3800, rentGrowPct: 3, apprPct: 3, invPct: 7, horizonYrs: 10, sellBrokerPct: 5, capGainPct: 30 };
 const rv5 = calcRvo({ rate: 5 });
 // 640k @ 5%/30yr → $3,435.65/mo
 approx("rate override 5% payment", rv5.years[0].interest + rv5.years[0].principal, 3435.65 * 12, 5);
@@ -218,6 +219,23 @@ if (!(rv15.years[0].interest < calcRvo().years[0].interest && rv15.years[0].prin
 const be6 = calcRvo().breakEven || 99, be5 = calcRvo({ rate: 5 }).breakEven || 99;
 if (be5 > be6) { fails++; console.log("FAIL  lower rate must not delay break-even"); }
 else console.log("PASS  lower rate break-even <= higher rate");
+
+// ---- Combined deductible % (user's building: "60% of maintenance is deductible") + benefit attribution ----
+// 60% combined, 10% bldg interest → 50% property-tax share. Maint $2,400/mo on 200k single income.
+const rv60 = calcRvo({ type: "coop", maintMo: 2400, coopDedPct: 60, coopIntPct: 10 });
+const y60 = rv60.years[0];
+// ptax share = 28,800×50% = 14,400; carry = 28,800 − 14,400×17.5% = 26,280; bldgInt = 28,800×10% = 2,880
+approx("60% letter: yr1 carry", y60.carry, 26280);
+approx("60% letter: bldg interest slice", y60.bldgInt, 2880);
+// benefit from maintenance alone: ded = SALT(18,645.09 + 14,400×0.825=11,880) + 2,880 = 33,405.09 vs renter 18,645.09 → 24% × 14,760
+approx("60% letter: tax savings from maintenance (§216)", y60.benefitMaint, 0.24 * (11880 + 2880), 2);
+// benefit from borrowing = 24% × year-1 share-loan interest (within the 24% bracket, under the $750k cap)
+approx("60% letter: tax savings from borrowing", y60.benefitBorrow, 0.24 * y60.interest, 3);
+// attribution is exact: the two sources sum to the total benefit
+approx("benefit attribution sums exactly", y60.benefitMaint + y60.benefitBorrow, y60.taxBenefit, 0.01);
+// legacy saved split still works via fallback: coopDedPct null + old fields → 45+10 = 55 combined
+const rvLegacy = calcRvo({ type: "coop", maintMo: 2400, coopDedPct: null, coopTaxPct: 45, coopIntPct: 10 });
+approx("legacy split migrates to combined 55%", rvLegacy.years[0].carry, 26532);
 }
 
 // Run assertions inside the engine's eval scope so its strict-mode declarations are visible.
