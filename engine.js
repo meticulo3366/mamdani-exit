@@ -450,7 +450,50 @@
     return out;
   }
 
+  /* ================= LISTING TEXT PARSER =================
+   * Pull the needed numbers out of pasted listing text (StreetEasy page copy, an agent's
+   * email, a spec sheet). Pure regex, no network. Returns { listing, found[], warnings[] } —
+   * listing holds only the fields confidently extracted. */
+  function parseListingText(text) {
+    const t = String(text || "").replace(/ /g, " ");
+    const listing = {}, found = [], warnings = [];
+    const money = s => +String(s).replace(/[^0-9.]/g, "");
+    // unit type
+    if (/co.?op(erative)?\b/i.test(t)) { listing.type = "coop"; found.push("co-op"); }
+    else if (/condo(minium)?\b/i.test(t)) { listing.type = "condo"; found.push("condo"); }
+    else if (/town\s?house|single.?family|multi.?family|\b[12].?3 family/i.test(t)) { listing.type = "house"; found.push("house"); }
+    else warnings.push("couldn't tell co-op vs condo — pick the unit type yourself");
+    // price: the first $ amount of at least six digits (sale prices lead StreetEasy pages)
+    const priceM = t.match(/\$\s?(\d{1,3}(?:,\d{3}){1,4}|\d{6,9})(?!\s*(?:\/|per\s|a\s)?mo)/i);
+    if (priceM && money(priceM[1]) >= 100000) { listing.price = money(priceM[1]); found.push("price $" + listing.price.toLocaleString("en-US")); }
+    else warnings.push("no sale price found (looked for the first $ amount of $100,000+)");
+    // maintenance (co-op) / common charges (condo)
+    const maintM = t.match(/maintenance[^$\d]{0,20}\$?\s?([\d,]+)/i);
+    const commonM = t.match(/common charges?[^$\d]{0,20}\$?\s?([\d,]+)/i);
+    const feeRaw = maintM ? money(maintM[1]) : commonM ? money(commonM[1]) : null;
+    if (feeRaw != null) {
+      const feeMo = feeRaw > 20000 ? Math.round(feeRaw / 12) : feeRaw; // annual figure pasted from a spec sheet
+      if (feeRaw > 20000) warnings.push("maintenance/common charges looked annual — converted to $" + feeMo.toLocaleString("en-US") + "/mo");
+      listing.maintMo = feeMo;
+      found.push((maintM ? "maintenance" : "common charges") + " $" + feeMo.toLocaleString("en-US") + "/mo");
+    } else warnings.push("no maintenance / common charges found");
+    // taxes (condo/house — StreetEasy lists monthly; spec sheets annual)
+    const taxM = t.match(/(?:taxes|real estate tax(?:es)?|property tax(?:es)?)[^$\d]{0,20}\$?\s?([\d,]+)/i);
+    if (taxM && listing.type !== "coop") {
+      const v = money(taxM[1]);
+      const taxMo = v >= 6000 ? Math.round(v / 12) : v;
+      if (v >= 6000) warnings.push("taxes looked annual — converted to $" + taxMo.toLocaleString("en-US") + "/mo");
+      listing.ptaxAnnual = taxMo * 12;
+      found.push("taxes $" + taxMo.toLocaleString("en-US") + "/mo");
+    } else if (listing.type !== "coop") warnings.push("no taxes line found — NYC condos run ~0.9% of price per year");
+    // co-op: "% tax deductible"
+    const dedM = t.match(/(\d{1,2}(?:\.\d+)?)\s?%\s?tax[\s-]?deduct/i);
+    if (dedM) { listing.coopDedPct = +dedM[1]; found.push(dedM[1] + "% tax deductible"); }
+    else if (listing.type === "coop") warnings.push("no \"% tax deductible\" in the text — ask the agent (60% is typical); using the default");
+    return { listing, found, warnings };
+  }
+
   return { VERSION, DEFAULT_DATA, DEFAULT_ACTIVE, DEFAULT_INPUTS, DEFAULT_RVO,
     cityCars, cityTransit, progTax, marginalInfo, stateTax, calcCity, compareCities,
-    mansionTax, recordingTax, rpttSell, amortYears, calcRvo, evaluateListing };
+    mansionTax, recordingTax, rpttSell, amortYears, calcRvo, evaluateListing, parseListingText };
 });

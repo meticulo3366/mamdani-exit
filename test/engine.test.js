@@ -267,6 +267,30 @@ if (!lst.taxNotes.some(n => /SALT cap/.test(n))) { fails++; console.log("FAIL  S
 const lst2 = E.evaluateListing({ price: 800000, type: "coop", maintMo: 2400, coopDedPct: 60, rentMo: 3800 }, INPUTS, DATA);
 if (!lst2.rentComparison || typeof lst2.rentComparison.verdict !== "string") { fails++; console.log("FAIL  rentComparison missing with rentMo"); }
 else console.log("PASS  listing with rent: verdict present (" + (lst2.rentComparison.breakEvenYear === null ? "renting ahead" : "break-even yr " + lst2.rentComparison.breakEvenYear) + ")");
+
+// ---- parseListingText: StreetEasy-style paste → form fields ----
+const seCoop = E.parseListingText(
+  "SAVE  SHARE\n$950,000\n2 beds · 1 bath · Co-op in Park Slope\n345 Lincoln Place #4B\n" +
+  "Maintenance: $2,600/month\nThis sunny prewar home is 60% tax deductible. Pied-à-terre allowed.");
+approx("parse co-op: price", seCoop.listing.price, 950000);
+approx("parse co-op: maintenance", seCoop.listing.maintMo, 2600);
+approx("parse co-op: % deductible", seCoop.listing.coopDedPct, 60);
+if (seCoop.listing.type !== "coop") { fails++; console.log("FAIL  parse co-op type"); } else console.log("PASS  parse co-op type");
+const seCondo = E.parseListingText(
+  "$1,250,000\nCondo in Long Island City\nCommon charges: $1,150/month\nTaxes: $780/month\n2 beds 2 baths");
+approx("parse condo: price", seCondo.listing.price, 1250000);
+approx("parse condo: common charges", seCondo.listing.maintMo, 1150);
+approx("parse condo: taxes monthly → annual", seCondo.listing.ptaxAnnual, 780 * 12);
+if (seCondo.listing.type !== "condo") { fails++; console.log("FAIL  parse condo type"); } else console.log("PASS  parse condo type");
+// annual figures from a spec sheet get converted with a warning
+const spec = E.parseListingText("Condominium offering: price $2,000,000, real estate taxes $18,000, common charges $30,000 per annum");
+approx("parse spec-sheet annual taxes → $/mo basis", spec.listing.ptaxAnnual, 18000);
+approx("parse spec-sheet annual common charges → monthly", spec.listing.maintMo, 2500);
+if (!spec.warnings.some(w => /annual/.test(w))) { fails++; console.log("FAIL  annual-conversion warning missing"); } else console.log("PASS  annual conversion warned");
+// junk input: no crash, helpful warnings
+const junk = E.parseListingText("beautiful apartment, call me!");
+if (Object.keys(junk.listing).length !== 0 || junk.warnings.length < 2) { fails++; console.log("FAIL  junk paste should find nothing + warn"); }
+else console.log("PASS  junk paste warns without filling");
 }
 
 runTests();

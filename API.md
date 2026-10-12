@@ -54,6 +54,10 @@ E.calcRvo({ price: 800000, type: "coop", coopDedPct: 60, coopIntPct: 10,
           { gross: 150000, status: "single" }, null);
 ```
 
+Also exported: `parseListingText(text)` — extracts `{price, type, maintMo, ptaxAnnual, coopDedPct}`
+from pasted listing text (StreetEasy page copy, spec sheets; converts annual figures, returns
+`found[]`/`warnings[]`). Feed its `.listing` straight into `evaluateListing`.
+
 Passing `null` for `data` uses the built-in verified dataset (`E.DEFAULT_DATA`); pass a modified
 copy to override any bracket or rate. Unlisted params take `E.DEFAULT_INPUTS` / `E.DEFAULT_RVO`
 defaults.
