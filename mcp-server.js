@@ -12,9 +12,42 @@
  */
 "use strict";
 const path = require("path");
-const E = require(path.join(__dirname, "src", "engine.js"));
+const fs = require("fs");
+// engine.js may sit in src/ (repo layout) or beside this file (loose download)
+const E = require(["src/engine.js", "engine.js"].map(p => path.join(__dirname, p)).find(p => fs.existsSync(p))
+  || path.join(__dirname, "src", "engine.js"));
+const round2 = x => (typeof x === "number" && isFinite(x)) ? Math.round(x * 100) / 100 : x;
+const deepRound = x => Array.isArray(x) ? x.map(deepRound)
+  : (x && typeof x === "object") ? Object.fromEntries(Object.entries(x).map(([k, v]) => [k, deepRound(v)]))
+  : round2(x);
 
 const TOOLS = [
+  {
+    name: "evaluate_listing",
+    description: "Send a NYC real-estate listing's facts, get the true cost of owning: one-time NYC costs (mansion tax, mortgage recording tax — co-ops exempt), year-1 monthly cost before and after tax savings (split into property-deduction vs mortgage-interest sources), true cost net of principal, and computed tax notes. Include rentMo to also get the rent-vs-own verdict (breakEvenYear null = owning never catches renting within the horizon). Listing-speak accepted: type 'co-op' etc., status 'married'. Amounts USD.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        price: { type: "number", description: "asking price" },
+        type: { type: "string", description: "condo | coop | house (aliases: co-op, cooperative, condominium, townhouse)" },
+        maintMo: { type: "number", description: "monthly maintenance (co-op, taxes included) or common charges (condo)" },
+        coopDedPct: { type: "number", description: "co-op: '% tax deductible' as the listing/building letter quotes it (default 60)" },
+        coopIntPct: { type: "number", description: "co-op: slice of maintenance that is building mortgage interest (default 10; ask managing agent)" },
+        ptaxAnnual: { type: "number", description: "condo/house: annual property tax from the listing (~0.9% of value typical)" },
+        abatePct: { type: "number", description: "co-op/condo abatement % (default 17.5; 0 if building doesn't participate)" },
+        downPct: { type: "number", description: "down payment % (default 20)" },
+        rate: { type: "number", description: "mortgage rate % (default 6.0)" },
+        termYrs: { type: "number", description: "10|15|20|30 (default 30)" },
+        rentMo: { type: "number", description: "OPTIONAL equivalent rent — include to get the rent-vs-own verdict" },
+        gross: { type: "number", description: "buyer's gross income for personalized tax savings (default 100000)" },
+        status: { type: "string", description: "single | mfj (aliases: married, joint)" },
+        k401: { type: "number" }, otherItem: { type: "number" },
+        rentGrowPct: { type: "number" }, apprPct: { type: "number" }, invPct: { type: "number" },
+        horizonYrs: { type: "number" }, sellBrokerPct: { type: "number", description: "default 5; add co-op flip tax here" }, capGainPct: { type: "number" }
+      },
+      required: ["price"]
+    }
+  },
   {
     name: "compare_cities",
     description: "Rank US cities by discretionary income (take-home pay minus housing, transport, and living costs) for someone considering leaving NYC. Uses real 2026 federal/state/city tax brackets, FICA, SALT cap, NY recapture, commuter rules. Amounts are USD per year.",
@@ -71,8 +104,18 @@ const TOOLS = [
   }
 ];
 
+const INCOME_KEYS = ["gross", "status", "k401", "otherItem"];
+function splitIncome(a) {
+  const inputs = {}, rest = {};
+  for (const [k, v] of Object.entries(a)) (INCOME_KEYS.includes(k) ? inputs : rest)[k] = v;
+  return { inputs, rest };
+}
 function handleTool(name, args) {
   const a = args || {};
+  if (name === "evaluate_listing") {
+    const { inputs, rest } = splitIncome(a);
+    return E.evaluateListing(rest, inputs, E.DEFAULT_DATA);
+  }
   if (name === "get_tax_data") {
     return { version: E.VERSION, taxYear: E.DEFAULT_DATA.meta.taxYear, defaults: { inputs: E.DEFAULT_INPUTS, rvo: E.DEFAULT_RVO, activeCities: E.DEFAULT_ACTIVE }, data: E.DEFAULT_DATA };
   }
@@ -84,16 +127,14 @@ function handleTool(name, args) {
       baseline: out.baseline, results: out.results };
   }
   if (name === "rent_vs_own_nyc") {
-    const { gross, status, k401, otherItem, ...rvo } = a;
-    const inputs = {};
-    if (gross !== undefined) inputs.gross = gross;
-    if (status !== undefined) inputs.status = status;
-    if (k401 !== undefined) inputs.k401 = k401;
-    if (otherItem !== undefined) inputs.otherItem = otherItem;
+    const { inputs, rest: rvo } = splitIncome(a);
     const r = E.calcRvo(rvo, inputs, E.DEFAULT_DATA);
-    return { taxYear: E.DEFAULT_DATA.meta.taxYear, inputs: Object.assign({}, E.DEFAULT_INPUTS, inputs), rvo: Object.assign({}, E.DEFAULT_RVO, rvo),
+    const rvoEcho = Object.assign({}, E.DEFAULT_RVO, rvo);
+    if (String(rvoEcho.type).toLowerCase().includes("co")) { rvoEcho.ptaxAnnual = null; rvoEcho.ptaxAnnualNote = "unused for co-ops — property tax derives from maintenance × the deduction-letter split"; }
+    return { taxYear: E.DEFAULT_DATA.meta.taxYear, inputs: Object.assign({}, E.DEFAULT_INPUTS, inputs), rvo: rvoEcho,
       summary: {
-        breakEvenYear: r.breakEven, cashToClose: r.initialOutlay, mansionTax: r.mansion, recordingTax: r.recording,
+        breakEvenYear: r.breakEven, breakEvenNote: r.breakEven ? undefined : "null = owning never catches renting within horizonYrs at these assumptions",
+        cashToClose: r.initialOutlay, mansionTax: r.mansion, recordingTax: r.recording,
         year1: { afterTaxMonthlyCost: r.years[0].outflow / 12, trueMonthlyCostNetOfPrincipal: (r.years[0].outflow - r.years[0].principal) / 12,
           rentMonthly: r.years[0].rentAnnual / 12, taxSavingsFromMaintenanceDeduction: r.years[0].benefitMaint, taxSavingsFromBorrowing: r.years[0].benefitBorrow },
         atHorizon: { year: r.horizonYrs, ownMinusRentWealth: r.years[r.years.length - 1].delta }
@@ -119,8 +160,10 @@ process.stdin.on("data", chunk => {
     try { msg = JSON.parse(line); } catch (e) { continue; }
     try {
       if (msg.method === "initialize") {
+        const SUPPORTED = ["2025-06-18", "2025-03-26", "2024-11-05"];
+        const asked = msg.params && msg.params.protocolVersion;
         respond(msg.id, {
-          protocolVersion: (msg.params && msg.params.protocolVersion) || "2025-06-18",
+          protocolVersion: SUPPORTED.includes(asked) ? asked : SUPPORTED[0],
           capabilities: { tools: {} },
           serverInfo: { name: "mamdani-exit", version: E.VERSION },
           instructions: "NYC cost-of-living & taxes calculator (2026, verified against primary sources). compare_cities ranks US cities by what you keep; rent_vs_own_nyc simulates buying vs renting in NYC with NYC-specific law; get_tax_data returns all brackets/rules. Not tax advice."
@@ -130,7 +173,7 @@ process.stdin.on("data", chunk => {
       } else if (msg.method === "tools/call") {
         const { name, arguments: args } = msg.params || {};
         try {
-          const result = handleTool(name, args);
+          const result = deepRound(handleTool(name, args));
           respond(msg.id, { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] });
         } catch (e) {
           respond(msg.id, { content: [{ type: "text", text: "Error: " + (e && e.message || e) }], isError: true });

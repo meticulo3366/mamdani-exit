@@ -234,6 +234,39 @@ approx("benefit attribution sums exactly", y60.benefitMaint + y60.benefitBorrow,
 // legacy saved split still works via fallback: coopDedPct null + old fields → 45+10 = 55 combined
 const rvLegacy = calcRvo({ type: "coop", maintMo: 2400, coopDedPct: null, coopTaxPct: 45, coopIntPct: 10 });
 approx("legacy split migrates to combined 55%", rvLegacy.years[0].carry, 26532);
+
+// ---- Agent-friendliness: aliases, validation, listing evaluator ----
+// "co-op" (as listings write it) must equal "coop" — this silently became a condo before
+const hyph = calcRvo({ type: "co-op", maintMo: 2400, coopDedPct: 60, coopIntPct: 10 });
+approx("type alias co-op → coop (recording exempt)", hyph.recording, 0);
+approx("type alias co-op carries §216 deduction", hyph.years[0].bldgInt, 2880);
+// status alias married → mfj
+const mfjA = E.calcCity("nyc", { gross: 600000, status: "married", k401: 24500 }, DATA);
+const mfjB = E.calcCity("nyc", { gross: 600000, status: "mfj", k401: 24500 }, DATA);
+approx("status alias married → mfj", mfjA.totalTax, mfjB.totalTax, 0.01);
+// typo'd keys and bad enums throw helpful errors instead of silently using defaults
+const throws = (label, fn, re) => { try { fn(); fails++; console.log("FAIL  " + label + ": did not throw"); }
+  catch (e) { const ok = re.test(String(e.message)); if (!ok) fails++; console.log((ok ? "PASS" : "FAIL") + "  " + label); } };
+throws("typo'd rvo key throws", () => calcRvo({ coopDeductPct: 25 }), /unrecognized rvo\/listing parameter.*coopDeductPct/);
+throws("typo'd inputs key throws", () => E.calcCity("nyc", { gros: 100000 }, DATA), /unrecognized inputs parameter.*gros/);
+throws("bad type throws with valid values", () => calcRvo({ type: "loft" }), /unknown unit type.*condo \| coop \| house/);
+throws("bad status throws with valid values", () => E.calcCity("nyc", { status: "hoh" }, DATA), /unknown filing status.*single \| mfj/);
+// years rows carry a 1-based year field
+if (calcRvo({}).years[0].year !== 1) { fails++; console.log("FAIL  years[0].year should be 1"); } else console.log("PASS  years rows have 1-based year");
+// evaluateListing: user's building, no rent → ownership-only; ties to calcRvo year 1
+INPUTS = { gross: 200000, status: "single" };
+const lst = E.evaluateListing({ price: 800000, type: "co-op", maintMo: 2400, coopDedPct: 60, coopIntPct: 10 }, INPUTS, DATA);
+const ref = calcRvo({ price: 800000, type: "coop", maintMo: 2400, coopDedPct: 60, coopIntPct: 10 });
+approx("listing: after-tax monthly ties to engine", lst.monthlyYear1.afterTaxCost, ref.years[0].outflow / 12, 0.02);
+approx("listing: tax savings split ties", lst.monthlyYear1.taxSavings.fromMortgageInterest, ref.years[0].benefitBorrow / 12, 0.02);
+approx("listing: recording tax 0 for co-op", lst.oneTimeCosts.mortgageRecordingTax, 0);
+if (lst.rentComparison !== null) { fails++; console.log("FAIL  no rentMo → rentComparison must be null"); } else console.log("PASS  listing without rent: ownership-only");
+if (!lst.taxNotes.some(n => /no mortgage recording tax/i.test(n))) { fails++; console.log("FAIL  co-op recording note missing"); } else console.log("PASS  listing tax notes include co-op exemption");
+if (!lst.taxNotes.some(n => /SALT cap/.test(n))) { fails++; console.log("FAIL  SALT headroom note missing"); } else console.log("PASS  listing tax notes include SALT headroom");
+// with rent → verdict present
+const lst2 = E.evaluateListing({ price: 800000, type: "coop", maintMo: 2400, coopDedPct: 60, rentMo: 3800 }, INPUTS, DATA);
+if (!lst2.rentComparison || typeof lst2.rentComparison.verdict !== "string") { fails++; console.log("FAIL  rentComparison missing with rentMo"); }
+else console.log("PASS  listing with rent: verdict present (" + (lst2.rentComparison.breakEvenYear === null ? "renting ahead" : "break-even yr " + lst2.rentComparison.breakEvenYear) + ")");
 }
 
 runTests();

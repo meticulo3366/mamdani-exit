@@ -32,7 +32,8 @@
 
   let out;
   try {
-    const mode = q.get("mode") || (q.toString() ? "cities" : "help");
+    // no explicit mode: params with a price are a listing; other params mean a city comparison
+    const mode = q.get("mode") || (q.has("price") ? "listing" : q.toString() ? "cities" : "help");
     const inputs = pick({
       gross: num("gross"), bonusPct: num("bonusPct"), status: q.get("status") || undefined,
       k401: num("k401"), spend: num("spend"), carCost: num("carCost"),
@@ -47,9 +48,10 @@
         name: "The Mamdani Exit — agent API", version: E.VERSION, taxYear: E.DEFAULT_DATA.meta.taxYear,
         note: "All computation happens in this page's JavaScript (static host). Amounts are USD/year unless noted.",
         modes: {
+          listing: "SEND A LISTING HERE → true cost of owning + tax notes. api.html?mode=listing&price=950000&type=coop&maintMo=2600&coopDedPct=60&gross=150000 (add rentMo=4200 for the rent-vs-own verdict; type aliases co-op/condominium accepted). Params: price, type, maintMo, coopDedPct, coopIntPct, ptaxAnnual, abatePct, downPct, rate, termYrs, rentMo + income params gross, status, k401, otherItem",
           cities: "api.html?mode=cities&gross=150000&status=single&cities=nyc,miami,austin — ranked discretionary income. Params: " +
             Object.keys(E.DEFAULT_INPUTS).join(", ") + " + cities (comma list)",
-          rvo: "api.html?mode=rvo&gross=150000&price=800000&type=coop&coopDedPct=60&maintMo=2400&rentMo=3800 — NYC rent-vs-own. Params: income params + " +
+          rvo: "api.html?mode=rvo&gross=150000&price=800000&type=coop&coopDedPct=60&maintMo=2400&rentMo=3800 — NYC rent-vs-own, full year-by-year detail. Params: income params + " +
             Object.keys(E.DEFAULT_RVO).join(", "),
           data: "api.html?mode=data — the full verified tax dataset (also at data.json, no JS needed)"
         },
@@ -64,7 +66,7 @@
       out = { mode, version: E.VERSION, taxYear: E.DEFAULT_DATA.meta.taxYear, inputs: Object.assign({}, E.DEFAULT_INPUTS, inputs),
         fieldNotes: { disc: "discretionary income per year after taxes, housing, transport, other living costs (and imputed commute time when inPerson)", deltaVsBaseline: "vs staying in NYC", effRate: "total tax / gross" },
         baseline: out.baseline, results: out.results };
-    } else if (mode === "rvo") {
+    } else if (mode === "listing" || mode === "rvo") {
       const rvo = pick({
         price: num("price"), type: q.get("type") || undefined, downPct: num("downPct"), rate: num("rate"),
         termYrs: num("termYrs"), maintMo: num("maintMo"), ptaxAnnual: num("ptaxAnnual"), abatePct: num("abatePct"),
@@ -72,10 +74,18 @@
         rentGrowPct: num("rentGrowPct"), apprPct: num("apprPct"), invPct: num("invPct"),
         horizonYrs: num("horizonYrs"), sellBrokerPct: num("sellBrokerPct"), capGainPct: num("capGainPct")
       });
-      if (rvo.type && !["condo", "coop", "house"].includes(rvo.type)) throw new Error('type must be condo|coop|house');
+      if (mode === "listing") {
+        out = Object.assign({ mode }, E.evaluateListing(rvo, inputs, E.DEFAULT_DATA));
+        const text0 = JSON.stringify(deepRound(out), null, 2);
+        document.getElementById("json").textContent = text0;
+        document.title = "Mamdani Exit API — listing";
+        return;
+      }
       const r = E.calcRvo(rvo, inputs, E.DEFAULT_DATA);
+      const rvoEcho = Object.assign({}, E.DEFAULT_RVO, rvo);
+      if (rvoEcho.type && String(rvoEcho.type).toLowerCase().includes("co") && rvoEcho.type !== "condo") rvoEcho.ptaxAnnual = null;
       out = { mode, version: E.VERSION, taxYear: E.DEFAULT_DATA.meta.taxYear,
-        inputs: Object.assign({}, E.DEFAULT_INPUTS, inputs), rvo: Object.assign({}, E.DEFAULT_RVO, rvo),
+        inputs: Object.assign({}, E.DEFAULT_INPUTS, inputs), rvo: rvoEcho,
         fieldNotes: {
           breakEven: "first year owning beats renting if sold then (null = never within horizon)",
           years: "annual simulation; delta = owner net worth minus renter portfolio if sold that year",
@@ -91,7 +101,7 @@
     } else if (mode === "data") {
       out = { mode, version: E.VERSION, data: E.DEFAULT_DATA };
     } else {
-      throw new Error('unknown mode "' + mode + '" — use cities | rvo | data, or no params for help');
+      throw new Error('unknown mode "' + mode + '" — use listing | cities | rvo | data, or no params for help');
     }
   } catch (e) {
     out = { error: String(e && e.message || e), help: "api.html (no params) describes modes, params, and valid city ids" };

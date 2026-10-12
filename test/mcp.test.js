@@ -39,8 +39,15 @@ function check(label, ok, extra) {
 
   const list = await rpc("tools/list", {});
   const names = (list.result.tools || []).map(t => t.name).sort();
-  check("tools/list returns 3 tools", names.join(",") === "compare_cities,get_tax_data,rent_vs_own_nyc", names.join(","));
+  check("tools/list returns 4 tools", names.join(",") === "compare_cities,evaluate_listing,get_tax_data,rent_vs_own_nyc", names.join(","));
   check("tools have inputSchema", (list.result.tools || []).every(t => t.inputSchema && t.inputSchema.type === "object"));
+
+  const lst = await rpc("tools/call", { name: "evaluate_listing", arguments: { price: 950000, type: "co-op", maintMo: 2600, coopDedPct: 60, gross: 150000, status: "married" } });
+  const lstJson = JSON.parse(lst.result.content[0].text);
+  check("evaluate_listing accepts listing-speak (co-op, married)", lstJson.listing.type === "coop" && lstJson.oneTimeCosts.mortgageRecordingTax === 0);
+  check("evaluate_listing returns tax-savings split", lstJson.monthlyYear1.taxSavings.fromMortgageInterest > 0);
+  check("evaluate_listing without rent: ownership-only", lstJson.rentComparison === null);
+  check("evaluate_listing amounts rounded to cents", String(lstJson.monthlyYear1.afterTaxCost).replace(/.*\./, "").length <= 2);
 
   const cmp = await rpc("tools/call", { name: "compare_cities", arguments: { gross: 200000, status: "single", cities: ["nyc", "miami"] } });
   const cmpJson = JSON.parse(cmp.result.content[0].text);

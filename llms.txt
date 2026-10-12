@@ -1,34 +1,39 @@
-# The Mamdani Exit — NYC cost-of-living, tax & rent-vs-own calculator (agent interface)
+# The Mamdani Exit — NYC listing evaluator, taxes & cost-of-living (agent interface)
 
 Verified 2026 US tax data (federal, state, NYC-specific). Static site — all computation is
 client-side JavaScript; there is no backend. Amounts are USD per year unless noted. Not tax advice.
 
-## If you can execute JavaScript (recommended — exact answers)
-Fetch https://meticulo3366.github.io/mamdani-exit/engine.js (CommonJS + browser global `NYCEXIT`,
-no dependencies) and call:
-- compareCities(inputs, null, cityIds?) -> ranked discretionary income across US cities
-- calcCity(cityId, inputs, null)        -> one city's full tax/cost breakdown
-- calcRvo(rvoParams, inputs, null)      -> NYC rent-vs-own simulation (mansion tax, recording tax,
-  co-op SS216 deduction letter, abatement, SALT cap, Pub 936, SS121, transfer taxes, break-even)
-Defaults and valid city ids: DEFAULT_INPUTS, DEFAULT_RVO, DEFAULT_ACTIVE, DEFAULT_DATA.cities.
-Full parameter reference: https://meticulo3366.github.io/mamdani-exit/API.md
+## Primary use: send a NYC listing, get the true cost of owning
+Browser-driving agents — open this URL with the listing's facts; the page body becomes one JSON doc:
+  https://meticulo3366.github.io/mamdani-exit/api.html?mode=listing&price=950000&type=coop&maintMo=2600&coopDedPct=60&gross=150000
+Add &rentMo=4200 for the rent-vs-own verdict. Listing-speak accepted: type=co-op, status=married.
+Returns: one-time NYC costs (mansion tax, recording tax — co-ops exempt), year-1 monthly cost
+before/after tax savings (split: property deductions vs mortgage interest), true cost net of
+principal, computed tax notes, and (with rentMo) breakEvenYear — null means owning never catches
+renting within the horizon.
 
-## If you drive a browser (agent mode)
-Open https://meticulo3366.github.io/mamdani-exit/api.html with URL query parameters; the page body
-becomes a single JSON document. No parameters -> self-describing help JSON.
-Examples:
-  api.html?mode=cities&gross=150000&status=single&cities=nyc,miami,austin
-  api.html?mode=rvo&gross=150000&price=800000&type=coop&coopDedPct=60&maintMo=2400&rentMo=3800
+Code-executing agents — exact same answer without a browser:
+  curl -O https://meticulo3366.github.io/mamdani-exit/engine.js   # CommonJS + browser global, no deps
+  node -e "const E=require('./engine.js'); console.log(JSON.stringify(E.evaluateListing(
+    {price:950000,type:'coop',maintMo:2600,coopDedPct:60,rentMo:4200},{gross:150000,status:'single'},null),null,2))"
+(ESM project? run from a clean temp dir or use module.createRequire.)
 
-## If you can only fetch text (no JS)
-https://meticulo3366.github.io/mamdani-exit/data.json has every verified bracket, rate, threshold,
-NYC ownership rule, and city preset — compute with care; the SALT cap, NY recapture, and SS121/Pub 936
-rules in API.md are the easy things to get wrong.
+## Other tools (same module / same API page)
+- compareCities(inputs, null, ids?) / api.html?mode=cities&gross=150000&cities=nyc,miami,austin
+  Ranks cities by disc = discretionary USD/yr after taxes + living costs; deltaVsBaseline is vs NYC
+  (positive = better than NYC). Unknown ids error with the valid list.
+- calcRvo(params, inputs, null) / api.html?mode=rvo&... — full year-by-year rent-vs-own detail
+  (years[].year is 1-based; delta = owner wealth minus renter wealth if sold that year).
+- api.html?mode=data or https://meticulo3366.github.io/mamdani-exit/data.json — every verified
+  bracket/rate/rule for clients that cannot run JS (compute carefully: SALT cap interplay, NY
+  recapture, Pub 936, §121 are the common mistakes; recipes in API.md).
+Full parameter & output reference: https://meticulo3366.github.io/mamdani-exit/API.md
 
 ## MCP (Claude Desktop/Code, ChatGPT desktop, Cursor, ...)
-Download https://meticulo3366.github.io/mamdani-exit/mcp-server.js plus engine.js into src/
-(or git clone https://github.com/meticulo3366/mamdani-exit), then register:
+Easiest: git clone https://github.com/meticulo3366/mamdani-exit (keeps the required layout:
+mcp-server.js at the root, engine.js under src/ — a loose download also works with both files in
+ONE directory). Register:
   { "mcpServers": { "mamdani-exit": { "command": "node", "args": ["<path>/mcp-server.js"] } } }
-Tools: compare_cities, rent_vs_own_nyc, get_tax_data.
+Tools: evaluate_listing (primary), compare_cities, rent_vs_own_nyc, get_tax_data.
 
 Human UI: https://meticulo3366.github.io/mamdani-exit/

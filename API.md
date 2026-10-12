@@ -5,6 +5,24 @@ NYC cost-of-living, tax, and rent-vs-own calculator with **verified 2026 tax dat
 **all computation is client-side JavaScript; there is no backend.** Amounts USD/year unless noted.
 Not tax advice.
 
+## 0. The front door: evaluate a listing
+
+An agent with a NYC listing gets the true cost of owning in one call. Browser agents:
+
+```
+api.html?mode=listing&price=950000&type=coop&maintMo=2600&coopDedPct=60&gross=150000&rentMo=4200
+```
+
+Code-running agents: `E.evaluateListing(listingParams, {gross, status}, null)` from `engine.js`.
+MCP clients: the `evaluate_listing` tool. All three return the same shape: `oneTimeCosts`
+(mansion/recording/closing/cashToClose), `monthlyYear1` (P&I, carrying costs, tax savings split into
+`fromPropertyDeductions` + `fromMortgageInterest`, `afterTaxCost`, `trueCostNetOfPrincipal`),
+computed `taxNotes`, and — only when `rentMo` is given — `rentComparison` with `breakEvenYear`
+(**null = owning never catches renting within the horizon**) and a plain-English `verdict`.
+Inputs are forgiving: `type=co-op`/`cooperative`/`condominium` and `status=married` are accepted;
+typo'd parameter names and unknown enums **throw errors naming the valid values** rather than
+silently using defaults.
+
 Pick the interface that matches your abilities:
 
 | You can… | Use |
@@ -20,6 +38,9 @@ All files live at `https://meticulo3366.github.io/mamdani-exit/` and are served 
 ## 1. engine.js (recommended)
 
 CommonJS module / browser global `NYCEXIT`. No dependencies. Node ≥16.
+
+CommonJS: inside an ESM project (`"type":"module"`), run from a clean temp directory or use
+`require = module.createRequire(import.meta.url)`.
 
 ```js
 const E = require("./engine.js"); // or <script src=".../engine.js"> → window.NYCEXIT
@@ -58,7 +79,8 @@ rent-stabilized 2026-27 renewals frozen at 0) · `apprPct` (3) · `invPct` rente
 `horizonYrs` (10) · `sellBrokerPct` (5; add co-op flip tax if any) · `capGainPct` (30)
 
 ### calcRvo output
-`breakEven` (first year owning wins if sold then; null = never in horizon), `initialOutlay`,
+`breakEven` (first year owning wins if sold then; null = never in horizon), `years[].year`
+(1-based), `initialOutlay`,
 `mansion`, `recording` (0 for co-ops — exempt), `buyCosts`, and `years[]` with per-year `interest`,
 `principal`, `balance`, `carry`, `taxBenefit` = `benefitMaint` (property/§216 deductions) +
 `benefitBorrow` (your mortgage interest), `outflow` (after-tax cash cost), `rentAnnual`,

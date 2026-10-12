@@ -534,6 +534,26 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
     coopDedPct: 60, coopIntPct: 10,
     rentMo: 3800, rentGrowPct: 3, apprPct: 3, invPct: 7, horizonYrs: 10, sellBrokerPct: 5, capGainPct: 30 };
 
+  /* ================= INPUT NORMALIZATION (agents write "co-op" and "married") ================= */
+  const TYPE_ALIASES = { coop: "coop", "co-op": "coop", cooperative: "coop", "co-operative": "coop",
+    condo: "condo", condominium: "condo", house: "house", townhouse: "house", "1-3 family": "house" };
+  const STATUS_ALIASES = { single: "single", mfj: "mfj", married: "mfj", joint: "mfj",
+    "married filing jointly": "mfj", married_filing_jointly: "mfj", marriedfilingjointly: "mfj" };
+  function normType(t) {
+    const k = String(t).toLowerCase().trim();
+    if (TYPE_ALIASES[k]) return TYPE_ALIASES[k];
+    throw new Error('unknown unit type "' + t + '" — use condo | coop | house (aliases accepted: co-op, cooperative, condominium, townhouse)');
+  }
+  function normStatus(s) {
+    const k = String(s).toLowerCase().trim();
+    if (STATUS_ALIASES[k]) return STATUS_ALIASES[k];
+    throw new Error('unknown filing status "' + s + '" — use single | mfj (married filing jointly; aliases accepted: married, joint)');
+  }
+  function checkKeys(obj, allowed, label) {
+    const bad = Object.keys(obj || {}).filter(k => !allowed.includes(k));
+    if (bad.length) throw new Error("unrecognized " + label + " parameter(s): " + bad.join(", ") + " — valid: " + allowed.join(", "));
+  }
+
   /* ================= INCOME TAX ENGINE ================= */
   const cityCars = c => (c.cars ?? (c.baseline ? 0 : 1));
   const cityTransit = c => (c.transit ?? (c.baseline ? 132 : 0));
@@ -579,7 +599,9 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
   }
   function calcCity(cityId, inputs, data) {
     const d = data || DEFAULT_DATA;
+    checkKeys(inputs, Object.keys(DEFAULT_INPUTS), "inputs");
     const inp = Object.assign({}, DEFAULT_INPUTS, inputs || {});
+    inp.status = normStatus(inp.status);
     const { gross, bonusPct, status, k401, spend, propTax, otherItem, nySrc } = inp;
     const city = d.cities[cityId];
     if (!city) throw new Error("unknown city id: " + cityId + " (valid: " + Object.keys(d.cities).join(", ") + ")");
@@ -689,9 +711,12 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
   function calcRvo(rvo, inputs, data) {
     const d = data || DEFAULT_DATA;
     const cfg = d.nycOwn || DEFAULT_DATA.nycOwn;
+    checkKeys(inputs, Object.keys(DEFAULT_INPUTS), "inputs");
+    checkKeys(rvo, Object.keys(DEFAULT_RVO).concat(["coopTaxPct"]), "rvo/listing");
     const inp = Object.assign({}, DEFAULT_INPUTS, inputs || {});
-    const status = inp.status;
+    const status = normStatus(inp.status);
     const v = Object.assign({}, DEFAULT_RVO, rvo || {});
+    v.type = normType(v.type);
     const P = Math.max(0, v.price);
     const loan0 = P * (1 - Math.min(100, Math.max(0, v.downPct)) / 100);
     const down = P - loan0;
@@ -757,7 +782,7 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
       const ownerNW = value - a.balance - sellCosts - capTax;
       const delta = ownerNW - portfolio;
       if (breakEven === null && delta >= 0) breakEven = n;
-      years.push({ n, value, interest: a.interest, principal: a.principal, balance: a.balance, carry,
+      years.push({ n, year: n, value, interest: a.interest, principal: a.principal, balance: a.balance, carry,
         ptaxNet, bldgInt, taxBenefit, benefitMaint, benefitBorrow, outflowPreTax, outflow, rentAnnual, portfolio, ownerNW, sellCosts, capTax, delta, intRatio });
       rentAnnual *= rentG; maintAnnual *= maintG;
       ptaxAnnual = v.type === "coop" ? maintAnnual * coopTaxShare : ptaxAnnual * maintG;
@@ -766,9 +791,74 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
       renterFed, saltCap, std, years, breakEven, abate, termYrs, rate: v.rate, horizonYrs: v.horizonYrs };
   }
 
+  /* ================= LISTING EVALUATOR =================
+   * The agent-facing front door: pass a real-estate listing's facts (+ optionally the buyer's
+   * income), get the true cost of owning and computed tax notes. rentMo is optional — without it
+   * you get ownership cost only; with it, the full rent-vs-own verdict. */
+  function evaluateListing(listing, inputs, data) {
+    const d = data || DEFAULT_DATA;
+    const l = listing || {};
+    const hasRent = l.rentMo != null && +l.rentMo > 0;
+    const r = calcRvo(l, inputs, d);
+    const inp = Object.assign({}, DEFAULT_INPUTS, inputs || {});
+    inp.status = normStatus(inp.status);
+    const v = Object.assign({}, DEFAULT_RVO, l);
+    v.type = normType(v.type);
+    const y1 = r.years[0];
+    const isCoop = v.type === "coop";
+    const mo = x => Math.round(x / 12 * 100) / 100;
+    // SALT headroom at this income (how much room property deductions actually have)
+    const wages = Math.max(0, inp.gross - inp.k401);
+    const sres = stateTax(d.states.NY, wages, inp.status);
+    const cityT = progTax(d.cities.nyc.cityTax.brackets[inp.status], sres.taxable);
+    const sc = d.federal.salt;
+    const saltCap = Math.min(sc.cap, Math.max(sc.floor, sc.cap - sc.phaseoutRate * Math.max(0, wages - sc.phaseoutStart)));
+    const saltRoom = Math.max(0, saltCap - Math.min(saltCap, sres.tax + cityT));
+    const notes = [];
+    if (isCoop) {
+      const condoRec = recordingTax(r.loan0, "condo", d.nycOwn || DEFAULT_DATA.nycOwn);
+      notes.push("Co-op: no mortgage recording tax (share loans are exempt) — saves $" + Math.round(condoRec).toLocaleString("en-US") + " vs an equivalent condo mortgage, and closing costs run ~0.7% lower (no title insurance).");
+      notes.push((v.coopDedPct) + "% of maintenance is deductible per the building's §216 letter: $" + mo(y1.ptaxNet / Math.max(0.0001, 1 - r.abate)).toLocaleString("en-US") + "/mo as property tax (SALT-capped) + $" + mo(y1.bldgInt).toLocaleString("en-US") + "/mo as building mortgage interest (deducts in full).");
+      notes.push("Check for a building flip tax on resale (1–3% is common; add it to sellBrokerPct) and whether the board passes the abatement through or offsets it with an assessment.");
+    }
+    notes.push(r.mansion > 0
+      ? "Mansion tax: $" + Math.round(r.mansion).toLocaleString("en-US") + " one-time (" + (r.mansion / r.P * 100).toFixed(2) + "% tier applies to the FULL price)."
+      : "No mansion tax (price under $1,000,000" + (r.P >= 900000 ? " — note it cliffs to 1% of the ENTIRE price at $1M, so a $999,999 deal beats a $1,005,000 deal by ~$10k" : "") + ").");
+    notes.push("At $" + inp.gross.toLocaleString("en-US") + " income, NY state + NYC income tax already fill $" + Math.round(Math.min(saltCap, sres.tax + cityT)).toLocaleString("en-US") + " of the $" + Math.round(saltCap).toLocaleString("en-US") + " SALT cap — property-tax deductions have $" + Math.round(saltRoom).toLocaleString("en-US") + "/yr of headroom; most of the federal benefit of buying comes from mortgage interest.");
+    if (y1.intRatio < 1) notes.push("Loan exceeds the $750k federal cap: only " + (y1.intRatio * 100).toFixed(0) + "% of year-1 mortgage interest is deductible (rises as you amortize).");
+    notes.push("Selling before 2 full years of ownership and use forfeits the §121 capital-gains exclusion ($" + (inp.status === "mfj" ? "500k" : "250k") + ").");
+    notes.push("Abatement assumed at " + v.abatePct + "% (co-op/condo abatement, primary residence only; tiers run 28.1%→17.5% by assessed value — confirm the building files for it).");
+    const out = {
+      taxYear: d.meta.taxYear, version: VERSION,
+      listing: { price: r.P, type: v.type, maintMo: v.maintMo, downPct: v.downPct, rate: v.rate, termYrs: r.termYrs },
+      oneTimeCosts: { mansionTax: r.mansion, mortgageRecordingTax: r.recording, otherClosing: r.otherClose,
+        totalBuyCosts: r.buyCosts, downPayment: r.down, cashToClose: r.initialOutlay },
+      monthlyYear1: {
+        mortgagePI: mo(y1.interest + y1.principal),
+        carryingCosts: mo(y1.carry),
+        cashOutflow: mo(y1.outflowPreTax),
+        taxSavings: { fromPropertyDeductions: mo(y1.benefitMaint), fromMortgageInterest: mo(y1.benefitBorrow), total: mo(y1.taxBenefit) },
+        afterTaxCost: mo(y1.outflow),
+        principalPortion: mo(y1.principal),
+        trueCostNetOfPrincipal: mo(y1.outflow - y1.principal)
+      },
+      taxNotes: notes,
+      rentComparison: hasRent ? {
+        rentMonthly: v.rentMo,
+        breakEvenYear: r.breakEven,
+        ownMinusRentWealthAtHorizon: r.years[r.years.length - 1].delta,
+        horizonYears: r.horizonYrs,
+        verdict: r.breakEven ? ("owning pulls ahead of renting in year " + r.breakEven + " (at your assumed " + v.apprPct + "% appreciation vs " + v.invPct + "% investment return)")
+          : ("renting stays ahead through year " + r.horizonYrs + " at these assumptions (" + v.apprPct + "% appreciation vs " + v.invPct + "% investment return)")
+      } : null,
+      disclaimer: "Not tax advice. 2026 rules verified against primary sources; confirm the building's deduction letter, abatement participation, and any flip tax."
+    };
+    return out;
+  }
+
   return { VERSION, DEFAULT_DATA, DEFAULT_ACTIVE, DEFAULT_INPUTS, DEFAULT_RVO,
     cityCars, cityTransit, progTax, marginalInfo, stateTax, calcCity, compareCities,
-    mansionTax, recordingTax, rpttSell, amortYears, calcRvo };
+    mansionTax, recordingTax, rpttSell, amortYears, calcRvo, evaluateListing };
 });
 
 </script>
