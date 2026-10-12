@@ -1118,7 +1118,16 @@
         "coop": 0.008,
         "house": 0.015
       },
-      "maintGrowth": 0.03
+      "maintGrowth": 0.03,
+      "star": {
+        "credit": 300,
+        "incomeLimit": 500000,
+        "note": "Basic STAR credit, NYC-typical approximation — varies with school tax; primary residence"
+      },
+      "nyItemized": {
+        "mortgageCapDebt": 1000000,
+        "note": "IT-196: pre-TCJA rules — property tax uncapped, $1M mortgage limit, NY income tax not deductible"
+      }
     }
   }
 }

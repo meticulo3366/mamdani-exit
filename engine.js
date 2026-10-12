@@ -119,7 +119,9 @@
         note: "nysSupp raises total NYS to 0.65% on residential $3M+" },
       abatementTiers: [[50000, 28.1], [55000, 25.2], [60000, 22.5], [null, 17.5]],
       closeOtherPct: { condo: 0.015, coop: 0.008, house: 0.015 },
-      maintGrowth: 0.03
+      maintGrowth: 0.03,
+      star: { credit: 300, incomeLimit: 500000, note: "Basic STAR credit, NYC-typical approximation — varies with school tax; primary residence" },
+      nyItemized: { mortgageCapDebt: 1000000, note: "IT-196: pre-TCJA rules — property tax uncapped, $1M mortgage limit, NY income tax not deductible" }
     }
   };
   const DEFAULT_ACTIVE = ["nyc", "miami", "austin", "nashville", "vegas", "seattle", "la", "boston", "chicago", "philly", "denver", "atlanta", "providence", "lancaster", "pittsburgh", "beacon", "princeton", "newhaven"];
@@ -172,9 +174,9 @@
     const last = brackets[brackets.length - 1];
     return { rate: last[1], lo };
   }
-  function stateTax(st, wages, status) {
+  function stateTax(st, wages, status, itemizedDed) {
     if (!st || st.type === "none") return { tax: 0, taxable: 0 };
-    const ded = st.stdDed ? (st.stdDed[status] || 0) : 0;
+    const ded = Math.max(st.stdDed ? (st.stdDed[status] || 0) : 0, itemizedDed || 0);
     const taxable = Math.max(0, wages - ded);
     let tax = 0;
     if (st.type === "flat") { tax = st.rate * taxable; }
@@ -275,6 +277,16 @@
   }
 
   /* ================= RENT VS OWN (NYC) ENGINE ================= */
+  // IT-196 high-income reduction of NY itemized deductions (verified vs tax.ny.gov):
+  // full ≤$100k NYAGI; −25% phased over $100k–$150k; another −25% phased over $475k–$525k;
+  // 50% allowed to $1M; above $1M charitable-only (we model no charitable → 0).
+  function nyItemizedFactor(nyagi) {
+    if (nyagi <= 100000) return 1;
+    if (nyagi > 1000000) return 0;
+    let red = 0.25 * Math.min(1, (nyagi - 100000) / 50000);
+    if (nyagi > 475000) red += 0.25 * Math.min(1, (nyagi - 475000) / 50000);
+    return 1 - red;
+  }
   function mansionTax(P, cfg) { // applies to FULL price once over each threshold (not marginal)
     let rate = 0;
     for (const [min, r] of cfg.mansion) if (P >= min) rate = r;
@@ -345,6 +357,13 @@
     let rentAnnual = v.rentMo * 12, maintAnnual = v.maintMo * 12;
     let ptaxAnnual = v.type === "coop" ? maintAnnual * coopTaxShare : (v.ptaxAnnual || 0);
     let portfolio = initialOutlay;
+    // NY State + NYC side (IT-196): owners itemize property tax (uncapped) + mortgage interest
+    // ($1M pre-TCJA limit) even when taking the federal standard deduction; NYC tax rides on
+    // NY taxable income, so the deduction cuts the city bill too. STAR credit when eligible.
+    const renterStateCity = sres.tax + cityT;
+    const nyFactor = nyItemizedFactor(wages);
+    const starCfg = cfg.star || { credit: 0, incomeLimit: 0 };
+    const star = wages <= starCfg.incomeLimit ? (starCfg.credit || 0) : 0;
     const years = []; let breakEven = null;
     const excl = status === "mfj" ? 500000 : 250000;
     const basisCosts = mansion + otherClose; // recording tax is a loan cost, not basis (Pub 551)
@@ -357,17 +376,26 @@
       const outflowPreTax = a.interest + a.principal + carry;
       // Pub 936: deductible share = $750k / this year's AVERAGE balance (rises toward 1 as the loan amortizes)
       const balStart = n === 1 ? loan0 : (amort[n - 2] ? amort[n - 2].balance : loan0);
-      const intRatio = Math.min(1, 750000 / Math.max(1, (balStart + a.balance) / 2));
+      const avgBal = Math.max(1, (balStart + a.balance) / 2);
+      const intRatio = Math.min(1, 750000 / avgBal);
       // §216 pass-through: co-op's building-mortgage-interest share of maintenance deducts as interest (not SALT-capped)
       const bldgInt = v.type === "coop" ? maintAnnual * coopIntShare : 0;
-      const ownDed = Math.max(std, Math.min(sres.tax + cityT + ptaxNet, saltCap) + a.interest * intRatio + bldgInt + (inp.otherItem || 0));
+      // NY/NYC: owner itemizes on IT-196 — $1M mortgage limit, property tax uncapped, high-income factor
+      const nyIntRatio = Math.min(1, (cfg.nyItemized && cfg.nyItemized.mortgageCapDebt || 1000000) / avgBal);
+      const nyItem = (a.interest * nyIntRatio + ptaxNet + bldgInt) * nyFactor;
+      const oState = stateTax(d.states.NY, wages, status, nyItem);
+      const oCity = progTax(d.cities.nyc.cityTax.brackets[status], oState.taxable);
+      const ownStateCity = oState.tax + oCity;
+      const benefitNYC = Math.max(0, renterStateCity - ownStateCity);
+      // Federal: the owner's SALT uses their REDUCED NY+NYC income tax plus net property tax
+      const ownDed = Math.max(std, Math.min(ownStateCity + ptaxNet, saltCap) + a.interest * intRatio + bldgInt + (inp.otherItem || 0));
       const taxBenefit = Math.max(0, renterFed - fedAt(ownDed));
-      // attribute the benefit to its two sources: the property deductions (maintenance/§216 for co-ops,
-      // property tax for condos) vs YOUR borrowing (share-loan/mortgage interest). Sums exactly to taxBenefit.
-      const dedNoLoan = Math.max(std, Math.min(sres.tax + cityT + ptaxNet, saltCap) + bldgInt + (inp.otherItem || 0));
+      // attribute the federal benefit to its two sources: the property deductions (maintenance/§216 for
+      // co-ops, property tax for condos) vs YOUR borrowing. Sums exactly to taxBenefit.
+      const dedNoLoan = Math.max(std, Math.min(ownStateCity + ptaxNet, saltCap) + bldgInt + (inp.otherItem || 0));
       const benefitMaint = Math.max(0, renterFed - fedAt(dedNoLoan));
       const benefitBorrow = taxBenefit - benefitMaint;
-      const outflow = outflowPreTax - taxBenefit;
+      const outflow = outflowPreTax - taxBenefit - benefitNYC - star;
       portfolio = portfolio * invG + (outflow - rentAnnual);
       const sellCosts = value * (v.sellBrokerPct || 0) / 100 + rpttSell(value, cfg);
       const gain = Math.max(0, value - sellCosts - (P + basisCosts));
@@ -377,12 +405,13 @@
       const delta = ownerNW - portfolio;
       if (breakEven === null && delta >= 0) breakEven = n;
       years.push({ n, year: n, value, interest: a.interest, principal: a.principal, balance: a.balance, carry,
-        ptaxNet, bldgInt, taxBenefit, benefitMaint, benefitBorrow, ownDed, outflowPreTax, outflow, rentAnnual, portfolio, ownerNW, sellCosts, capTax, delta, intRatio });
+        ptaxNet, bldgInt, taxBenefit, benefitMaint, benefitBorrow, benefitNYC, star, ownStateCity, ownDed,
+        outflowPreTax, outflow, rentAnnual, portfolio, ownerNW, sellCosts, capTax, delta, intRatio });
       rentAnnual *= rentG; maintAnnual *= maintG;
       ptaxAnnual = v.type === "coop" ? maintAnnual * coopTaxShare : ptaxAnnual * maintG;
     }
     return { P, loan0, down, mansion, recording, otherClose, buyCosts, initialOutlay,
-      renterFed, renterDed, saltCap, std, years, breakEven, abate, termYrs, rate: v.rate, horizonYrs: v.horizonYrs };
+      renterFed, renterDed, renterStateCity, nyFactor, star, saltCap, std, years, breakEven, abate, termYrs, rate: v.rate, horizonYrs: v.horizonYrs };
   }
 
   /* ================= LISTING EVALUATOR =================
@@ -420,6 +449,8 @@
       : "No mansion tax (price under $1,000,000" + (r.P >= 900000 ? " — note it cliffs to 1% of the ENTIRE price at $1M, so a $999,999 deal beats a $1,005,000 deal by ~$10k" : "") + ").");
     notes.push("At $" + inp.gross.toLocaleString("en-US") + " income, NY state + NYC income tax already fill $" + Math.round(Math.min(saltCap, sres.tax + cityT)).toLocaleString("en-US") + " of the $" + Math.round(saltCap).toLocaleString("en-US") + " SALT cap — property-tax deductions have $" + Math.round(saltRoom).toLocaleString("en-US") + "/yr of headroom; most of the federal benefit of buying comes from mortgage interest.");
     if (y1.intRatio < 1) notes.push("Loan exceeds the $750k federal cap: only " + (y1.intRatio * 100).toFixed(0) + "% of year-1 mortgage interest is deductible (rises as you amortize).");
+    notes.push("NY State + NYC income-tax savings (IT-196): owners itemize property tax (no SALT cap) and mortgage interest (to $1M) on the state return even with the federal standard deduction — worth $" + Math.round(y1.benefitNYC).toLocaleString("en-US") + "/yr here" + (r.nyFactor < 1 ? " (after the " + Math.round((1 - r.nyFactor) * 100) + "% high-income reduction at this NYAGI)" : "") + ", and it cuts the NYC city tax too since it rides on NY taxable income.");
+    if (y1.star > 0) notes.push("Basic STAR credit ~$" + Math.round(y1.star).toLocaleString("en-US") + "/yr (income under $500k, primary residence — register with NYS DTF; amount varies).");
     notes.push("Selling before 2 full years of ownership and use forfeits the §121 capital-gains exclusion ($" + (inp.status === "mfj" ? "500k" : "250k") + ").");
     notes.push("Abatement assumed at " + v.abatePct + "% (co-op/condo abatement, primary residence only; tiers run 28.1%→17.5% by assessed value — confirm the building files for it).");
     const out = {
@@ -431,7 +462,8 @@
         mortgagePI: mo(y1.interest + y1.principal),
         carryingCosts: mo(y1.carry),
         cashOutflow: mo(y1.outflowPreTax),
-        taxSavings: { fromPropertyDeductions: mo(y1.benefitMaint), fromMortgageInterest: mo(y1.benefitBorrow), total: mo(y1.taxBenefit) },
+        taxSavings: { federalFromPropertyDeductions: mo(y1.benefitMaint), federalFromMortgageInterest: mo(y1.benefitBorrow),
+          nyStateAndCityItemizing: mo(y1.benefitNYC), starCredit: mo(y1.star), total: mo(y1.taxBenefit + y1.benefitNYC + y1.star) },
         afterTaxCost: mo(y1.outflow),
         principalPortion: mo(y1.principal),
         trueCostNetOfPrincipal: mo(y1.outflow - y1.principal)

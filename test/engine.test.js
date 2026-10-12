@@ -138,8 +138,9 @@ const rv = calcRvo();
 approx("rvo buy costs (recording+other)", rv.buyCosts, 12320 + 12000);
 approx("rvo cash to close", rv.initialOutlay, 160000 + 24320);
 const y1 = rv.years[0];
-// benefit ≈ 24% × (net property tax 5,940 + year-1 interest), all inside the 24% bracket ($640k loan < $750k → full interest)
-approx("rvo yr1 tax benefit", y1.taxBenefit, 0.24 * (5940 + y1.interest), 3);
+// federal benefit = 24% × (owner deduction − renter deduction); owner SALT uses the REDUCED NY+NYC tax
+approx("rvo yr1 fed benefit = bracket × extra deduction", y1.taxBenefit, 0.24 * (y1.ownDed - rv.renterDed), 3);
+approx("rvo yr1 ownDed composition", y1.ownDed, Math.min(y1.ownStateCity + 5940, 40400) + y1.interest, 3);
 // carry = maint 14,400 + net ptax 5,940
 approx("rvo yr1 carry", y1.carry, 20340);
 // renter portfolio recurrence: 184,320×1.07 + (outflow − 45,600)
@@ -157,9 +158,11 @@ approx("rvo co-op no recording", rvC.recording, 0);
 approx("rvo co-op yr1 carry w/ abatement credit", rvC.years[0].carry, 26532);
 // building interest share = 28,800×10% = 2,880, deducted OUTSIDE the SALT cap
 approx("rvo co-op bldg interest share", rvC.years[0].bldgInt, 2880);
-// all deduction pieces sit in the 24% bracket at 200k: benefit = 24% × (ptaxNet 10,692 + share-loan interest + bldgInt 2,880)
+// all deduction pieces sit in the 24% bracket at 200k: benefit = 24% × (ownDed − renterDed)
 approx("rvo co-op yr1 tax benefit incl. §216 interest", rvC.years[0].taxBenefit,
-  0.24 * (12960 * 0.825 + rvC.years[0].interest + 2880), 3);
+  0.24 * (rvC.years[0].ownDed - rvC.renterDed), 3);
+approx("rvo co-op ownDed composition", rvC.years[0].ownDed,
+  Math.min(rvC.years[0].ownStateCity + 12960 * 0.825, 40400) + rvC.years[0].interest + 2880, 3);
 // SALT-cap independence: with state+city already at the cap, the interest share still deducts.
 // 600k MFJ: SALT cap floors at 19,250 < state+city (59,782) → ptax share adds NOTHING, bldgInt still does.
 INPUTS = { gross: 600000, bonusPct: 40, status: "mfj", k401: 0, spend: 3000, carCost: 750, propTax: 0, otherItem: 0,
@@ -225,8 +228,9 @@ const y60 = rv60.years[0];
 // ptax share = 28,800×50% = 14,400; carry = 28,800 − 14,400×17.5% = 26,280; bldgInt = 28,800×10% = 2,880
 approx("60% letter: yr1 carry", y60.carry, 26280);
 approx("60% letter: bldg interest slice", y60.bldgInt, 2880);
-// benefit from maintenance alone: ded = SALT(18,645.09 + 14,400×0.825=11,880) + 2,880 = 33,405.09 vs renter 18,645.09 → 24% × 14,760
-approx("60% letter: tax savings from maintenance (§216)", y60.benefitMaint, 0.24 * (11880 + 2880), 2);
+// benefit from maintenance alone: SALT uses owner's reduced NY+NYC tax → 24% × (ownStateCity + 11,880 + 2,880 − renter 18,645.09)
+approx("60% letter: tax savings from maintenance (§216)", y60.benefitMaint,
+  0.24 * (Math.min(y60.ownStateCity + 11880, 40400) + 2880 - 18645.09), 2);
 // benefit from borrowing = 24% × year-1 share-loan interest (within the 24% bracket, under the $750k cap)
 approx("60% letter: tax savings from borrowing", y60.benefitBorrow, 0.24 * y60.interest, 3);
 // attribution is exact: the two sources sum to the total benefit
@@ -258,7 +262,8 @@ INPUTS = { gross: 200000, status: "single" };
 const lst = E.evaluateListing({ price: 800000, type: "co-op", maintMo: 2400, coopDedPct: 60, coopIntPct: 10 }, INPUTS, DATA);
 const ref = calcRvo({ price: 800000, type: "coop", maintMo: 2400, coopDedPct: 60, coopIntPct: 10 });
 approx("listing: after-tax monthly ties to engine", lst.monthlyYear1.afterTaxCost, ref.years[0].outflow / 12, 0.02);
-approx("listing: tax savings split ties", lst.monthlyYear1.taxSavings.fromMortgageInterest, ref.years[0].benefitBorrow / 12, 0.02);
+approx("listing: tax savings split ties", lst.monthlyYear1.taxSavings.federalFromMortgageInterest, ref.years[0].benefitBorrow / 12, 0.02);
+approx("listing: NY/NYC savings included", lst.monthlyYear1.taxSavings.nyStateAndCityItemizing, ref.years[0].benefitNYC / 12, 0.02);
 approx("listing: recording tax 0 for co-op", lst.oneTimeCosts.mortgageRecordingTax, 0);
 if (lst.rentComparison !== null) { fails++; console.log("FAIL  no rentMo → rentComparison must be null"); } else console.log("PASS  listing without rent: ownership-only");
 if (!lst.taxNotes.some(n => /no mortgage recording tax/i.test(n))) { fails++; console.log("FAIL  co-op recording note missing"); } else console.log("PASS  listing tax notes include co-op exemption");
@@ -291,11 +296,43 @@ if (!spec.warnings.some(w => /annual/.test(w))) { fails++; console.log("FAIL  an
 INPUTS = { gross: 200000, status: "single" };
 RVO = {};
 const rvDM = calcRvo({ price: 800000, type: "coop", maintMo: 2400, coopDedPct: 60, coopIntPct: 10 });
-// ownDed = SALT(18,645.09 + ptaxNet 11,880) + yr-1 interest + bldgInt 2,880
-approx("ownDed exposed and correct", rvDM.years[0].ownDed, 18645.09 + 11880 + rvDM.years[0].interest + 2880, 1);
+// ownDed = SALT(owner's reduced NY+NYC tax + ptaxNet 11,880) + yr-1 interest + bldgInt 2,880
+approx("ownDed exposed and correct", rvDM.years[0].ownDed, rvDM.years[0].ownStateCity + 11880 + rvDM.years[0].interest + 2880, 1);
 approx("renterDed exposed (itemized SALT)", rvDM.renterDed, 18645.09, 1);
 // benefit ≈ (ownDed − renterDed) × 24% in the flat-bracket region
 approx("savings = extra deduction × bracket", rvDM.years[0].taxBenefit, (rvDM.years[0].ownDed - rvDM.renterDed) * 0.24, 3);
+
+// ---- NY State + NYC itemizing benefit (IT-196) + STAR ----
+// 200k single co-op (maint 2400, 60/10): factor 0.75; NY itemized = 0.75×(interest + ptaxNet 11,880 + bldgInt 2,880)
+INPUTS = { gross: 200000, status: "single" };
+const rvNY = calcRvo({ price: 800000, type: "coop", maintMo: 2400, coopDedPct: 60, coopIntPct: 10 });
+const yNY = rvNY.years[0];
+approx("IT-196 factor at 200k", rvNY.nyFactor, 0.75, 0.001);
+{
+  const nyItem = 0.75 * (yNY.interest + 11880 + 2880);
+  const taxable = 200000 - nyItem;
+  const state = 0.059 * taxable; // recapture fully phased at 200k AGI, 5.9% bracket
+  const city = 1813.17 + 0.03876 * (taxable - 50000);
+  approx("owner NY+NYC tax (hand-computed)", yNY.ownStateCity, state + city, 2);
+  approx("NY/NYC benefit = renter − owner", yNY.benefitNYC, 18645.09 - (state + city), 2);
+}
+approx("STAR credit at 200k income", yNY.star, 300);
+// outflow nets ALL benefits: pre-tax − federal − NY/NYC − STAR
+approx("outflow nets federal + NY/NYC + STAR", yNY.outflow,
+  yNY.outflowPreTax - yNY.taxBenefit - yNY.benefitNYC - yNY.star, 0.01);
+// factor tiers: full ≤100k; 0.625 at 500k; 0.5 at 600k; 0 above $1M — and STAR cuts off above 500k
+approx("IT-196 factor at 90k", E.calcRvo({}, { gross: 90000, status: "single" }, DATA).nyFactor, 1, 0.001);
+approx("IT-196 factor at 500k", E.calcRvo({}, { gross: 500000, status: "single" }, DATA).nyFactor, 0.625, 0.001);
+approx("IT-196 factor at 600k", E.calcRvo({}, { gross: 600000, status: "single" }, DATA).nyFactor, 0.5, 0.001);
+approx("IT-196 factor above $1M", E.calcRvo({}, { gross: 1200000, status: "single" }, DATA).nyFactor, 0, 0.001);
+approx("STAR cuts off above 500k", E.calcRvo({}, { gross: 600000, status: "single" }, DATA).years[0].star, 0);
+// NY $1M mortgage limit: $1.6M loan → yr-1 NY interest ratio < federal? NY cap 1M vs fed 750k
+{
+  const big = E.calcRvo({ price: 2000000, downPct: 20 }, { gross: 400000, status: "single" }, DATA);
+  // NY allows 1M/avgBal of interest, more than the federal 750k/avgBal — benefitNYC must exceed 0
+  if (!(big.years[0].benefitNYC > 0)) { fails++; console.log("FAIL  big-loan NY benefit missing"); }
+  else console.log("PASS  NY $1M mortgage limit applied (benefit present on $1.6M loan)");
+}
 
 // junk input: no crash, helpful warnings
 const junk = E.parseListingText("beautiful apartment, call me!");

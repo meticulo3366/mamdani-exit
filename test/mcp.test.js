@@ -45,7 +45,8 @@ function check(label, ok, extra) {
   const lst = await rpc("tools/call", { name: "evaluate_listing", arguments: { price: 950000, type: "co-op", maintMo: 2600, coopDedPct: 60, gross: 150000, status: "married" } });
   const lstJson = JSON.parse(lst.result.content[0].text);
   check("evaluate_listing accepts listing-speak (co-op, married)", lstJson.listing.type === "coop" && lstJson.oneTimeCosts.mortgageRecordingTax === 0);
-  check("evaluate_listing returns tax-savings split", lstJson.monthlyYear1.taxSavings.fromMortgageInterest > 0);
+  check("evaluate_listing returns tax-savings split", lstJson.monthlyYear1.taxSavings.federalFromMortgageInterest > 0
+    && lstJson.monthlyYear1.taxSavings.nyStateAndCityItemizing > 0 && lstJson.monthlyYear1.taxSavings.starCredit >= 0);
   check("evaluate_listing without rent: ownership-only", lstJson.rentComparison === null);
   check("evaluate_listing amounts rounded to cents", String(lstJson.monthlyYear1.afterTaxCost).replace(/.*\./, "").length <= 2);
 

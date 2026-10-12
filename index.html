@@ -406,7 +406,7 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
           <li><b>Commute time value (in-person work):</b> annual commute hours = 2 × one-way minutes × office days/week × 48 weeks, priced at your $/hr and subtracted from discretionary income as an <i>imputed</i> cost. US DOT guidance values personal travel time near 50% of the wage rate (~$25/hr at $100k, ~$50/hr at $200k). A Beacon-to-NYC rail commute 3 days/week is ~400 hours a year — set your own rate honestly and the belt-town math changes a lot.</li>
           <li><b>PA local earned-income tax:</b> nearly every PA municipality levies one — modeled at a typical 1.1% for Lancaster/Allentown (editable), 3% for Pittsburgh, and Philadelphia's exact 3.74% wage tax. PA also taxes 401(k) employee deferrals, which this model doesn't.</li>
           <li><b>Cars:</b> each city has a car count (only NYC and a few transit-strong cities default below one per household) × your all-in per-car cost, plus a monthly transit-pass figure (NYC $132 unlimited MetroCard; editable per city in the JSON). Car insurance varies a lot by state — FL, NY, and LA metro run high, so adjust the per-car cost if insurance quotes differ materially.</li>
-          <li><b>Rent vs. own (NYC tab):</b> one-time costs use the NY mansion-tax schedule (1%–3.9% of the <i>full</i> price at each threshold), NYC mortgage recording tax — buyer pays 1.8% under $500k / 1.925% at $500k+ (the statutory 2.05%/2.175% totals include a 0.25% share the lender pays; <b>co-ops exempt</b>) — and typical other closing costs. Recurring: 15/20/30-yr amortization at your rate (a sensitivity table re-runs the full model at ±1%), maintenance/common charges growing ~3%/yr, property tax net of the co-op/condo abatement (17.5%–28.1% by assessed value; primary residence; larger/high-value buildings must file the prevailing-wage affidavit). Tax savings are computed by running your actual federal return both ways through the bracket engine — property tax joins state+city income tax under the SALT cap; mortgage interest deducts by the Pub 936 ratio ($750k ÷ each year's average balance, so the deductible share rises as you amortize). <b>Co-ops follow the building's §216 tax-deduction letter</b>: you enter the combined deductible % as quoted plus its building-interest slice — the property-tax remainder is SALT-capped and abatement-reduced, the interest slice deducts in full — and the year-1 ledger attributes the total tax savings to its two sources: the maintenance deduction vs your own mortgage interest. Exit applies broker fee + NYC RPTT (1%/1.425%) and NYS transfer tax (0.4%, rising to 0.65% total on residential ≥$3M), then the §121 exclusion ($250k/$500k, only after 2 years of ownership &amp; use) before your capital-gains rate; recording tax is treated as a loan cost, not basis. Not modeled: PMI, refinancing, NY-state itemizing, flip taxes (co-op-specific — check the building), renter-portfolio taxes, buyer concessions. Every constant was adversarially verified against primary sources (tax.ny.gov, nyc.gov/311, IRS) in Aug 2026 and lives in the editable tax-data JSON.</li>
+          <li><b>Rent vs. own (NYC tab):</b> one-time costs use the NY mansion-tax schedule (1%–3.9% of the <i>full</i> price at each threshold), NYC mortgage recording tax — buyer pays 1.8% under $500k / 1.925% at $500k+ (the statutory 2.05%/2.175% totals include a 0.25% share the lender pays; <b>co-ops exempt</b>) — and typical other closing costs. Recurring: 15/20/30-yr amortization at your rate (a sensitivity table re-runs the full model at ±1%), maintenance/common charges growing ~3%/yr, property tax net of the co-op/condo abatement (17.5%–28.1% by assessed value; primary residence; larger/high-value buildings must file the prevailing-wage affidavit). Tax savings are computed by running your actual federal return both ways through the bracket engine — property tax joins state+city income tax under the SALT cap; mortgage interest deducts by the Pub 936 ratio ($750k ÷ each year's average balance, so the deductible share rises as you amortize). <b>Co-ops follow the building's §216 tax-deduction letter</b>: you enter the combined deductible % as quoted plus its building-interest slice — the property-tax remainder is SALT-capped and abatement-reduced, the interest slice deducts in full — and the year-1 ledger attributes the total tax savings to its two sources: the maintenance deduction vs your own mortgage interest. Exit applies broker fee + NYC RPTT (1%/1.425%) and NYS transfer tax (0.4%, rising to 0.65% total on residential ≥$3M), then the §121 exclusion ($250k/$500k, only after 2 years of ownership &amp; use) before your capital-gains rate; recording tax is treated as a loan cost, not basis. <b>City &amp; state benefits:</b> owners itemize on NY IT-196 (property tax uncapped, mortgage interest to the pre-TCJA $1M limit, NY income tax never deductible) even when taking the federal standard deduction — reduced 25%→50% above $100k/$475k NYAGI and eliminated above $1M — which also cuts NYC city tax since it rides on NY taxable income; the owner's <i>reduced</i> NY+NYC tax is what feeds their federal SALT; Basic STAR credit (~$300, income ≤$500k) applied. Not modeled: PMI, refinancing, flip taxes (co-op-specific — check the building), renter-portfolio taxes, buyer concessions, building-specific 421-a/J-51 abatements (if the listing has one, lower the taxes field accordingly). Every constant was adversarially verified against primary sources (tax.ny.gov, nyc.gov/311, IRS) in Aug 2026 and lives in the editable tax-data JSON.</li>
           <li><b>Rents and cost indexes are placeholders</b> — the tax math is exact to the data; the living-cost side is only as good as what you plug in.</li>
           <li>Not tax advice. The NY bonus-sourcing rules and move-timing are genuinely worth a CPA — mistiming a large bonus around a move can cost more than any modeling error here.</li>
         </ul>
@@ -542,7 +542,9 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
         note: "nysSupp raises total NYS to 0.65% on residential $3M+" },
       abatementTiers: [[50000, 28.1], [55000, 25.2], [60000, 22.5], [null, 17.5]],
       closeOtherPct: { condo: 0.015, coop: 0.008, house: 0.015 },
-      maintGrowth: 0.03
+      maintGrowth: 0.03,
+      star: { credit: 300, incomeLimit: 500000, note: "Basic STAR credit, NYC-typical approximation — varies with school tax; primary residence" },
+      nyItemized: { mortgageCapDebt: 1000000, note: "IT-196: pre-TCJA rules — property tax uncapped, $1M mortgage limit, NY income tax not deductible" }
     }
   };
   const DEFAULT_ACTIVE = ["nyc", "miami", "austin", "nashville", "vegas", "seattle", "la", "boston", "chicago", "philly", "denver", "atlanta", "providence", "lancaster", "pittsburgh", "beacon", "princeton", "newhaven"];
@@ -595,9 +597,9 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
     const last = brackets[brackets.length - 1];
     return { rate: last[1], lo };
   }
-  function stateTax(st, wages, status) {
+  function stateTax(st, wages, status, itemizedDed) {
     if (!st || st.type === "none") return { tax: 0, taxable: 0 };
-    const ded = st.stdDed ? (st.stdDed[status] || 0) : 0;
+    const ded = Math.max(st.stdDed ? (st.stdDed[status] || 0) : 0, itemizedDed || 0);
     const taxable = Math.max(0, wages - ded);
     let tax = 0;
     if (st.type === "flat") { tax = st.rate * taxable; }
@@ -698,6 +700,16 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
   }
 
   /* ================= RENT VS OWN (NYC) ENGINE ================= */
+  // IT-196 high-income reduction of NY itemized deductions (verified vs tax.ny.gov):
+  // full ≤$100k NYAGI; −25% phased over $100k–$150k; another −25% phased over $475k–$525k;
+  // 50% allowed to $1M; above $1M charitable-only (we model no charitable → 0).
+  function nyItemizedFactor(nyagi) {
+    if (nyagi <= 100000) return 1;
+    if (nyagi > 1000000) return 0;
+    let red = 0.25 * Math.min(1, (nyagi - 100000) / 50000);
+    if (nyagi > 475000) red += 0.25 * Math.min(1, (nyagi - 475000) / 50000);
+    return 1 - red;
+  }
   function mansionTax(P, cfg) { // applies to FULL price once over each threshold (not marginal)
     let rate = 0;
     for (const [min, r] of cfg.mansion) if (P >= min) rate = r;
@@ -768,6 +780,13 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
     let rentAnnual = v.rentMo * 12, maintAnnual = v.maintMo * 12;
     let ptaxAnnual = v.type === "coop" ? maintAnnual * coopTaxShare : (v.ptaxAnnual || 0);
     let portfolio = initialOutlay;
+    // NY State + NYC side (IT-196): owners itemize property tax (uncapped) + mortgage interest
+    // ($1M pre-TCJA limit) even when taking the federal standard deduction; NYC tax rides on
+    // NY taxable income, so the deduction cuts the city bill too. STAR credit when eligible.
+    const renterStateCity = sres.tax + cityT;
+    const nyFactor = nyItemizedFactor(wages);
+    const starCfg = cfg.star || { credit: 0, incomeLimit: 0 };
+    const star = wages <= starCfg.incomeLimit ? (starCfg.credit || 0) : 0;
     const years = []; let breakEven = null;
     const excl = status === "mfj" ? 500000 : 250000;
     const basisCosts = mansion + otherClose; // recording tax is a loan cost, not basis (Pub 551)
@@ -780,17 +799,26 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
       const outflowPreTax = a.interest + a.principal + carry;
       // Pub 936: deductible share = $750k / this year's AVERAGE balance (rises toward 1 as the loan amortizes)
       const balStart = n === 1 ? loan0 : (amort[n - 2] ? amort[n - 2].balance : loan0);
-      const intRatio = Math.min(1, 750000 / Math.max(1, (balStart + a.balance) / 2));
+      const avgBal = Math.max(1, (balStart + a.balance) / 2);
+      const intRatio = Math.min(1, 750000 / avgBal);
       // §216 pass-through: co-op's building-mortgage-interest share of maintenance deducts as interest (not SALT-capped)
       const bldgInt = v.type === "coop" ? maintAnnual * coopIntShare : 0;
-      const ownDed = Math.max(std, Math.min(sres.tax + cityT + ptaxNet, saltCap) + a.interest * intRatio + bldgInt + (inp.otherItem || 0));
+      // NY/NYC: owner itemizes on IT-196 — $1M mortgage limit, property tax uncapped, high-income factor
+      const nyIntRatio = Math.min(1, (cfg.nyItemized && cfg.nyItemized.mortgageCapDebt || 1000000) / avgBal);
+      const nyItem = (a.interest * nyIntRatio + ptaxNet + bldgInt) * nyFactor;
+      const oState = stateTax(d.states.NY, wages, status, nyItem);
+      const oCity = progTax(d.cities.nyc.cityTax.brackets[status], oState.taxable);
+      const ownStateCity = oState.tax + oCity;
+      const benefitNYC = Math.max(0, renterStateCity - ownStateCity);
+      // Federal: the owner's SALT uses their REDUCED NY+NYC income tax plus net property tax
+      const ownDed = Math.max(std, Math.min(ownStateCity + ptaxNet, saltCap) + a.interest * intRatio + bldgInt + (inp.otherItem || 0));
       const taxBenefit = Math.max(0, renterFed - fedAt(ownDed));
-      // attribute the benefit to its two sources: the property deductions (maintenance/§216 for co-ops,
-      // property tax for condos) vs YOUR borrowing (share-loan/mortgage interest). Sums exactly to taxBenefit.
-      const dedNoLoan = Math.max(std, Math.min(sres.tax + cityT + ptaxNet, saltCap) + bldgInt + (inp.otherItem || 0));
+      // attribute the federal benefit to its two sources: the property deductions (maintenance/§216 for
+      // co-ops, property tax for condos) vs YOUR borrowing. Sums exactly to taxBenefit.
+      const dedNoLoan = Math.max(std, Math.min(ownStateCity + ptaxNet, saltCap) + bldgInt + (inp.otherItem || 0));
       const benefitMaint = Math.max(0, renterFed - fedAt(dedNoLoan));
       const benefitBorrow = taxBenefit - benefitMaint;
-      const outflow = outflowPreTax - taxBenefit;
+      const outflow = outflowPreTax - taxBenefit - benefitNYC - star;
       portfolio = portfolio * invG + (outflow - rentAnnual);
       const sellCosts = value * (v.sellBrokerPct || 0) / 100 + rpttSell(value, cfg);
       const gain = Math.max(0, value - sellCosts - (P + basisCosts));
@@ -800,12 +828,13 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
       const delta = ownerNW - portfolio;
       if (breakEven === null && delta >= 0) breakEven = n;
       years.push({ n, year: n, value, interest: a.interest, principal: a.principal, balance: a.balance, carry,
-        ptaxNet, bldgInt, taxBenefit, benefitMaint, benefitBorrow, ownDed, outflowPreTax, outflow, rentAnnual, portfolio, ownerNW, sellCosts, capTax, delta, intRatio });
+        ptaxNet, bldgInt, taxBenefit, benefitMaint, benefitBorrow, benefitNYC, star, ownStateCity, ownDed,
+        outflowPreTax, outflow, rentAnnual, portfolio, ownerNW, sellCosts, capTax, delta, intRatio });
       rentAnnual *= rentG; maintAnnual *= maintG;
       ptaxAnnual = v.type === "coop" ? maintAnnual * coopTaxShare : ptaxAnnual * maintG;
     }
     return { P, loan0, down, mansion, recording, otherClose, buyCosts, initialOutlay,
-      renterFed, renterDed, saltCap, std, years, breakEven, abate, termYrs, rate: v.rate, horizonYrs: v.horizonYrs };
+      renterFed, renterDed, renterStateCity, nyFactor, star, saltCap, std, years, breakEven, abate, termYrs, rate: v.rate, horizonYrs: v.horizonYrs };
   }
 
   /* ================= LISTING EVALUATOR =================
@@ -843,6 +872,8 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
       : "No mansion tax (price under $1,000,000" + (r.P >= 900000 ? " — note it cliffs to 1% of the ENTIRE price at $1M, so a $999,999 deal beats a $1,005,000 deal by ~$10k" : "") + ").");
     notes.push("At $" + inp.gross.toLocaleString("en-US") + " income, NY state + NYC income tax already fill $" + Math.round(Math.min(saltCap, sres.tax + cityT)).toLocaleString("en-US") + " of the $" + Math.round(saltCap).toLocaleString("en-US") + " SALT cap — property-tax deductions have $" + Math.round(saltRoom).toLocaleString("en-US") + "/yr of headroom; most of the federal benefit of buying comes from mortgage interest.");
     if (y1.intRatio < 1) notes.push("Loan exceeds the $750k federal cap: only " + (y1.intRatio * 100).toFixed(0) + "% of year-1 mortgage interest is deductible (rises as you amortize).");
+    notes.push("NY State + NYC income-tax savings (IT-196): owners itemize property tax (no SALT cap) and mortgage interest (to $1M) on the state return even with the federal standard deduction — worth $" + Math.round(y1.benefitNYC).toLocaleString("en-US") + "/yr here" + (r.nyFactor < 1 ? " (after the " + Math.round((1 - r.nyFactor) * 100) + "% high-income reduction at this NYAGI)" : "") + ", and it cuts the NYC city tax too since it rides on NY taxable income.");
+    if (y1.star > 0) notes.push("Basic STAR credit ~$" + Math.round(y1.star).toLocaleString("en-US") + "/yr (income under $500k, primary residence — register with NYS DTF; amount varies).");
     notes.push("Selling before 2 full years of ownership and use forfeits the §121 capital-gains exclusion ($" + (inp.status === "mfj" ? "500k" : "250k") + ").");
     notes.push("Abatement assumed at " + v.abatePct + "% (co-op/condo abatement, primary residence only; tiers run 28.1%→17.5% by assessed value — confirm the building files for it).");
     const out = {
@@ -854,7 +885,8 @@ This calculator runs real 2026 progressive brackets — not flat approximations 
         mortgagePI: mo(y1.interest + y1.principal),
         carryingCosts: mo(y1.carry),
         cashOutflow: mo(y1.outflowPreTax),
-        taxSavings: { fromPropertyDeductions: mo(y1.benefitMaint), fromMortgageInterest: mo(y1.benefitBorrow), total: mo(y1.taxBenefit) },
+        taxSavings: { federalFromPropertyDeductions: mo(y1.benefitMaint), federalFromMortgageInterest: mo(y1.benefitBorrow),
+          nyStateAndCityItemizing: mo(y1.benefitNYC), starCredit: mo(y1.star), total: mo(y1.taxBenefit + y1.benefitNYC + y1.star) },
         afterTaxCost: mo(y1.outflow),
         principalPortion: mo(y1.principal),
         trueCostNetOfPrincipal: mo(y1.outflow - y1.principal)
@@ -1040,7 +1072,7 @@ function renderRvo(){
       <div class="val">${sgn(y.delta)}</div></div>`;
   }).join("");
   // year-1 ledger
-  const dedMath = ` <b>Why the savings are what they are:</b> renting, your federal deduction would be ${$(r.renterDed)}${r.renterDed <= r.std ? " (the standard deduction)" : " (itemized: NY+NYC income tax under the SALT cap)"}; owning lifts it to ${$(y1.ownDed)} — only that extra ${$(Math.max(0, y1.ownDed - r.renterDed))} per year generates tax savings, at your marginal rate.${y1.ownDed <= r.std ? " At these numbers the standard deduction absorbs the entire ownership deduction — no federal benefit." : ""}`;
+  const dedMath = ` <b>Why the savings are what they are:</b> renting, your federal deduction would be ${$(r.renterDed)}${r.renterDed <= r.std ? " (the standard deduction)" : " (itemized: NY+NYC income tax under the SALT cap)"}; owning lifts it to ${$(y1.ownDed)} — only that extra ${$(Math.max(0, y1.ownDed - r.renterDed))} per year generates federal savings, at your marginal rate.${y1.ownDed <= r.std ? " At these numbers the standard deduction absorbs the entire ownership deduction — no federal benefit." : ""} Separately, New York lets owners itemize on IT-196 (property tax uncapped, mortgage interest to $1M) even with the federal standard deduction — that's the NY State + NYC savings line, and it shrinks the city tax too.`;
   document.getElementById("rv-yr1note").innerHTML = (isCoop
     ? `Tax savings computed with the real 2026 bracket engine at your income (${$(INPUTS.gross)}, ${INPUTS.status === "mfj" ? "married" : "single"}). Your building's letter: <b>${v.coopDedPct}% of maintenance is deductible</b> — the ${Math.max(0, v.coopDedPct - v.coopIntPct)}% property-tax slice (${mo(y1.ptaxNet / Math.max(0.0001, 1 - r.abate))}/mo) counts toward the SALT cap (${$(r.saltCap)}); the ${Math.min(v.coopIntPct, v.coopDedPct)}% building-interest slice (${mo(y1.bldgInt)}/mo) deducts in full. Your own share-loan interest deducts on top${y1.intRatio < 1 ? ` (limited to ${(y1.intRatio * 100).toFixed(0)}% by the $750k cap)` : ""} — the ledger shows each source separately.`
     : `Tax savings computed with the real 2026 bracket engine at your income (${$(INPUTS.gross)}, ${INPUTS.status === "mfj" ? "married" : "single"}): owning adds property tax to SALT (cap ${$(r.saltCap)}) plus deductible mortgage interest${y1.intRatio < 1 ? ` (capped at the $750k loan limit — ${(y1.intRatio * 100).toFixed(0)}% of year-1 interest counts, rising as the loan amortizes)` : ""}.`) + dedMath;
@@ -1051,8 +1083,10 @@ function renderRvo(){
   if(v.type !== "coop") led.push(`<tr><td>Property tax (net of ${(v.abatePct).toFixed(1)}% abatement)</td><td>${mo(y1.ptaxNet)}</td><td>—</td></tr>`);
   led.push(`<tr><td>Rent</td><td>—</td><td>${mo(y1.rentAnnual)}</td></tr>`);
   led.push(`<tr><td>Cash outflow</td><td>${mo(y1.outflowPreTax)}</td><td>${mo(y1.rentAnnual)}</td></tr>`);
-  led.push(`<tr><td>Tax savings — ${isCoop ? "maintenance deduction (§216)" : "property tax (SALT)"}</td><td class="pos">−${mo(y1.benefitMaint)}</td><td>—</td></tr>`);
-  led.push(`<tr><td>Tax savings — your mortgage interest</td><td class="pos">−${mo(y1.benefitBorrow)}</td><td>—</td></tr>`);
+  led.push(`<tr><td>Federal tax savings — ${isCoop ? "maintenance deduction (§216)" : "property tax (SALT)"}</td><td class="pos">−${mo(y1.benefitMaint)}</td><td>—</td></tr>`);
+  led.push(`<tr><td>Federal tax savings — your mortgage interest</td><td class="pos">−${mo(y1.benefitBorrow)}</td><td>—</td></tr>`);
+  led.push(`<tr><td>NY State + NYC tax savings — IT-196 itemizing${r.nyFactor < 1 ? ` (after −${Math.round((1 - r.nyFactor) * 100)}% high-income reduction)` : ""}</td><td class="pos">−${mo(y1.benefitNYC)}</td><td>—</td></tr>`);
+  if(y1.star > 0) led.push(`<tr><td>Basic STAR credit (primary residence, income ≤ $500k)</td><td class="pos">−${mo(y1.star)}</td><td>—</td></tr>`);
   led.push(`<tr><td>Principal (builds your equity)</td><td class="pos">−${mo(y1.principal)}</td><td>—</td></tr>`);
   led.push(`<tr class="tot"><td>True monthly cost</td><td>${mo(y1.outflow - y1.principal)}</td><td>${mo(y1.rentAnnual)}</td></tr>`);
   document.getElementById("rv-ledger").innerHTML = led.join("");
