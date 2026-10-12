@@ -377,12 +377,12 @@
       const delta = ownerNW - portfolio;
       if (breakEven === null && delta >= 0) breakEven = n;
       years.push({ n, year: n, value, interest: a.interest, principal: a.principal, balance: a.balance, carry,
-        ptaxNet, bldgInt, taxBenefit, benefitMaint, benefitBorrow, outflowPreTax, outflow, rentAnnual, portfolio, ownerNW, sellCosts, capTax, delta, intRatio });
+        ptaxNet, bldgInt, taxBenefit, benefitMaint, benefitBorrow, ownDed, outflowPreTax, outflow, rentAnnual, portfolio, ownerNW, sellCosts, capTax, delta, intRatio });
       rentAnnual *= rentG; maintAnnual *= maintG;
       ptaxAnnual = v.type === "coop" ? maintAnnual * coopTaxShare : ptaxAnnual * maintG;
     }
     return { P, loan0, down, mansion, recording, otherClose, buyCosts, initialOutlay,
-      renterFed, saltCap, std, years, breakEven, abate, termYrs, rate: v.rate, horizonYrs: v.horizonYrs };
+      renterFed, renterDed, saltCap, std, years, breakEven, abate, termYrs, rate: v.rate, horizonYrs: v.horizonYrs };
   }
 
   /* ================= LISTING EVALUATOR =================

@@ -531,13 +531,14 @@ function renderRvo(){
       <div class="val">${sgn(y.delta)}</div></div>`;
   }).join("");
   // year-1 ledger
-  document.getElementById("rv-yr1note").innerHTML = isCoop
+  const dedMath = ` <b>Why the savings are what they are:</b> renting, your federal deduction would be ${$(r.renterDed)}${r.renterDed <= r.std ? " (the standard deduction)" : " (itemized: NY+NYC income tax under the SALT cap)"}; owning lifts it to ${$(y1.ownDed)} — only that extra ${$(Math.max(0, y1.ownDed - r.renterDed))} per year generates tax savings, at your marginal rate.${y1.ownDed <= r.std ? " At these numbers the standard deduction absorbs the entire ownership deduction — no federal benefit." : ""}`;
+  document.getElementById("rv-yr1note").innerHTML = (isCoop
     ? `Tax savings computed with the real 2026 bracket engine at your income (${$(INPUTS.gross)}, ${INPUTS.status === "mfj" ? "married" : "single"}). Your building's letter: <b>${v.coopDedPct}% of maintenance is deductible</b> — the ${Math.max(0, v.coopDedPct - v.coopIntPct)}% property-tax slice (${mo(y1.ptaxNet / Math.max(0.0001, 1 - r.abate))}/mo) counts toward the SALT cap (${$(r.saltCap)}); the ${Math.min(v.coopIntPct, v.coopDedPct)}% building-interest slice (${mo(y1.bldgInt)}/mo) deducts in full. Your own share-loan interest deducts on top${y1.intRatio < 1 ? ` (limited to ${(y1.intRatio * 100).toFixed(0)}% by the $750k cap)` : ""} — the ledger shows each source separately.`
-    : `Tax savings computed with the real 2026 bracket engine at your income (${$(INPUTS.gross)}, ${INPUTS.status === "mfj" ? "married" : "single"}): owning adds property tax to SALT (cap ${$(r.saltCap)}) plus deductible mortgage interest${y1.intRatio < 1 ? ` (capped at the $750k loan limit — ${(y1.intRatio * 100).toFixed(0)}% of year-1 interest counts, rising as the loan amortizes)` : ""}.`;
+    : `Tax savings computed with the real 2026 bracket engine at your income (${$(INPUTS.gross)}, ${INPUTS.status === "mfj" ? "married" : "single"}): owning adds property tax to SALT (cap ${$(r.saltCap)}) plus deductible mortgage interest${y1.intRatio < 1 ? ` (capped at the $750k loan limit — ${(y1.intRatio * 100).toFixed(0)}% of year-1 interest counts, rising as the loan amortizes)` : ""}.`) + dedMath;
   const led = [];
   led.push(`<tr><th>Monthly, year 1</th><th>Own</th><th>Rent</th></tr>`);
   led.push(`<tr><td>Mortgage payment (P&amp;I, ${r.termYrs}-yr @ ${v.rate}%)</td><td>${mo(y1.interest + y1.principal)}</td><td>—</td></tr>`);
-  led.push(`<tr><td>${v.type === "coop" ? `Maintenance (abatement credit −${(v.abatePct).toFixed(1)}% of tax share)` : "Common charges / maintenance"}</td><td>${mo(y1.carry - (v.type === "coop" ? 0 : y1.ptaxNet))}</td><td>—</td></tr>`);
+  led.push(`<tr><td>${v.type === "coop" ? `Maintenance — ${v.coopDedPct}% deductible (${$(Math.round(v.maintMo * v.coopDedPct / 100))}/mo per the letter), abatement credit −${(v.abatePct).toFixed(1)}% of tax share` : "Common charges / maintenance"}</td><td>${mo(y1.carry - (v.type === "coop" ? 0 : y1.ptaxNet))}</td><td>—</td></tr>`);
   if(v.type !== "coop") led.push(`<tr><td>Property tax (net of ${(v.abatePct).toFixed(1)}% abatement)</td><td>${mo(y1.ptaxNet)}</td><td>—</td></tr>`);
   led.push(`<tr><td>Rent</td><td>—</td><td>${mo(y1.rentAnnual)}</td></tr>`);
   led.push(`<tr><td>Cash outflow</td><td>${mo(y1.outflowPreTax)}</td><td>${mo(y1.rentAnnual)}</td></tr>`);

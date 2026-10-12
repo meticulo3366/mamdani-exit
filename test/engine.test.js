@@ -287,6 +287,16 @@ const spec = E.parseListingText("Condominium offering: price $2,000,000, real es
 approx("parse spec-sheet annual taxes → $/mo basis", spec.listing.ptaxAnnual, 18000);
 approx("parse spec-sheet annual common charges → monthly", spec.listing.maintMo, 2500);
 if (!spec.warnings.some(w => /annual/.test(w))) { fails++; console.log("FAIL  annual-conversion warning missing"); } else console.log("PASS  annual conversion warned");
+// deduction-math surfacing: ownDed and renterDed exposed; attribution consistent with them
+INPUTS = { gross: 200000, status: "single" };
+RVO = {};
+const rvDM = calcRvo({ price: 800000, type: "coop", maintMo: 2400, coopDedPct: 60, coopIntPct: 10 });
+// ownDed = SALT(18,645.09 + ptaxNet 11,880) + yr-1 interest + bldgInt 2,880
+approx("ownDed exposed and correct", rvDM.years[0].ownDed, 18645.09 + 11880 + rvDM.years[0].interest + 2880, 1);
+approx("renterDed exposed (itemized SALT)", rvDM.renterDed, 18645.09, 1);
+// benefit ≈ (ownDed − renterDed) × 24% in the flat-bracket region
+approx("savings = extra deduction × bracket", rvDM.years[0].taxBenefit, (rvDM.years[0].ownDed - rvDM.renterDed) * 0.24, 3);
+
 // junk input: no crash, helpful warnings
 const junk = E.parseListingText("beautiful apartment, call me!");
 if (Object.keys(junk.listing).length !== 0 || junk.warnings.length < 2) { fails++; console.log("FAIL  junk paste should find nothing + warn"); }
